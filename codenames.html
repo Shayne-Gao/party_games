@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codenames Pro 联机增强版</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root { --red: #ff4757; --blue: #2e86de; --neutral: #ced6e0; --black: #2f3542; --bg: #f1f2f6; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; overflow-x: hidden; }
+        
+        /* 登录 UI */
+        #login-screen { display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; justify-content: center; }
+        .login-card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        input, select, textarea { padding: 12px; width: 100%; margin-bottom: 12px; border: 2px solid #eee; border-radius: 8px; box-sizing: border-box; }
+        
+        /* 游戏布局 */
+        #game-screen { display: none; padding: 10px; flex-direction: column; align-items: center; }
+        .top-nav { width: 100%; max-width: 800px; display: flex; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
+        .score-pill { flex: 1; padding: 10px; border-radius: 10px; color: white; text-align: center; font-weight: bold; box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
+        
+        /* 网格与卡片 */
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; max-width: 800px; }
+        .card { aspect-ratio: 3/2; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.2s; border: 4px solid transparent; padding: 5px; font-size: 24px; position: relative; }
+        
+        /* 队长视觉 */
+        .role-spymaster .card.type-red { border-color: #ffb8b8; background: #fff5f5; }
+        .role-spymaster .card.type-blue { border-color: #b8d4ff; background: #f5faff; }
+        .role-spymaster .card.type-black { border-color: #999; background: #f0f0f0; }
+        
+        /* 翻牌状态 */
+        .card.revealed { color: white !important; transform: translateY(2px); box-shadow: none; }
+        .card.revealed.type-red { background: var(--red) !important; }
+        .card.revealed.type-blue { background: var(--blue) !important; }
+        .card.revealed.type-neutral { background: var(--neutral) !important; }
+        .card.revealed.type-black { background: var(--black) !important; }
+        
+        /* 待确认状态 */
+        .card.pending { border-color: #f1c40f !important; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.6; } }
+
+        /* 日志 */
+        #game-log { width: 100%; max-width: 800px; height: 80px; background: #fff; margin-top: 15px; border-radius: 10px; padding: 10px; font-size: 12px; overflow-y: auto; box-sizing: border-box; border: 1px solid #ddd; }
+        
+        button { background: var(--blue); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-join { background: #2ecc71; margin-top: 10px; width: 100%; }
+        
+        @media (max-width: 500px) { .card { font-size: 12px; } .grid { gap: 4px; } }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-card">
+        <h2 style="margin-top:0; text-align:center">Codenames Pro</h2>
+        <input type="text" id="room-input" placeholder="房间号">
+        <select id="role-input">
+            <option value="player">队员 (Player)</option>
+            <option value="spymaster">队长 (Spymaster)</option>
+        </select>
+        <textarea id="custom-words" placeholder="自定义词库 (可选，空格/逗号/换行分隔)"></textarea>
+        <button onclick="initPeer(true)" style="width:100%">创建并作为房主</button>
+        <button class="btn-join" onclick="initPeer(false)">加入已有房间</button>
+    </div>
+</div>
+
+<div id="game-screen">
+    <div class="top-nav">
+        <div class="score-pill" style="background:var(--red)">红: <span id="r-score">0</span></div>
+        <div class="score-pill" style="background:#fff; color:#333; font-size:12px">房间: <span id="room-id-tag"></span><br><span id="status-tag">连接中</span></div>
+        <div class="score-pill" style="background:var(--blue)">蓝: <span id="b-score">0</span></div>
+    </div>
+
+    <div id="game-grid" class="grid"></div>
+
+    <div id="game-log"></div>
+    
+    <div style="margin-top:15px; display:flex; gap:10px; width:100%; max-width:800px;">
+        <button onclick="location.reload()" style="background:#95a5a6; flex:1">退出游戏</button>
+        <button id="reset-btn" style="display:none; flex:1" onclick="broadcastReset()">重开一局</button>
+    </div>
+</div>
+
+<script>
+    const DEFAULT_WORDS_RAW = `长城 医生 企鹅 足球 钢琴 潜水 森林 巧克力 直升机 恐龙 剧院 口香糖 袋鼠 间谍 锤子 三明治 橄榄 相机 护照 钻石 非洲 牙医 炸弹 纽约 潜艇 厨师 电池 口罩 手机 键盘 咖啡 恐龙 天使 塔楼 公主 警察 柠檬 炸弹 中国 扑克 法官 学校 医院 天堂 地狱 太阳 月亮 星星 闪电 喷泉 广场 码头 银行 市场 车站 机场 酒店 监狱 寺庙 坟墓 国王 皇后 骑士 农民 海盗 宇航员 律师 老师 护士 厨师 司机 记者 演员 科学家 心脏 眼睛 牙齿 骨头 手指 影子 梦境 声音 气味 颜色 形状 温度 时间 空间 命运 黄金 白银 钢铁 塑料 玻璃 纸张 木头 布料 皮革 石头 泥土 煤炭 石油 煤气 亚洲 欧洲 美洲 澳洲 极地 沙漠 丛林 草原 峡谷 海洋 湖泊 河流 瀑布 冰川 苹果 香蕉 橙子 葡萄 西瓜 草莓 樱桃 菠萝 芒果 柠檬 桃子 梨子 荔枝 猕猴桃 老虎 狮子 大象 长颈鹿 斑马 骆驼 熊猫 狐狸 灰狼 兔子 老鼠 猴子 蝙蝠 鲸鱼 玫瑰 牡丹 荷花 向日葵 仙人掌 枫叶 松树 柳树 竹子 蘑菇 稻谷 小麦 玉米 棉花 圆珠笔 订书机 剪刀 胶水 尺子 地图 地球仪 闹钟 手表 望远镜 显微镜 放大镜 罗盘 吉他 小提琴 萨克斯 喇叭 鼓 笛子 口琴 唱片 无线电 电视 电影 摄影 绘画 雕塑 足球 篮球 网球 乒乓球 羽毛球 游泳 滑雪 登山 射箭 拳击 围棋 象棋 纸牌 骰子 飞机 火车 轮船 单车 摩托车 卡车 坦克 潜艇 火箭 飞船 降落伞 热气球 缆车 电梯 雨伞 钥匙 锁头 镜子 梳子 刷子 毛巾 肥皂 牙刷 蜡烛 灯泡 电池 火柴 烟花 衬衫 裤子 裙子 帽子 鞋子 手套 围巾 领带 皮带 袜子 外套 雨衣 盔甲 旗帜 数学 历史 地理 科学 艺术 体育 音乐 法律 政治 经济 哲学 宗教 语言 文字 春季 夏季 秋季 冬季 早上 中午 晚上 午夜 昨天 今天 明天 星期 月份 季节 快乐 悲伤 愤怒 恐惧 惊喜 尴尬 寂寞 勇敢 聪明 懒惰 漂亮 丑陋 强壮 虚弱 圆形 方形 三角形 星形 线条 点 表面 边缘 中心 顶部 底部 前面 后面 左边 右边 声音 味道 触觉 视觉 嗅觉 记忆 想象 逻辑 情感 意志 灵魂 智慧 道德 罪恶 英雄 光线 黑暗 火焰 冰块 烟雾 灰尘 泡沫 液体 气体 固体 能量 物质 原子 宇宙 黑洞`;
+
+    let peer, conn, roomSeed, myRole;
+    let finalWords = [], finalColors = [];
+    let pendingIndex = null;
+
+    function parseWords(text) {
+        return text.split(/[,，\n\r]+|(?<=[^\w\s])\s+(?=[^\w\s])|(?<=[^\w\s])\s+(?=[\w])|(?<=[\w])\s+(?=[^\w\s])/g).map(w => w.trim()).filter(w => w.length > 0);
+    }
+
+    function initPeer(asHost) {
+        const roomId = document.getElementById('room-input').value;
+        myRole = document.getElementById('role-input').value;
+        if(!roomId) return alert("房间号不能为空");
+        
+        roomSeed = hashString(roomId);
+        peer = asHost ? new Peer("cn-pro-" + roomId) : new Peer();
+
+        peer.on('open', (id) => {
+            if(!asHost) connectToHost("cn-pro-" + roomId);
+            else {
+                const custom = document.getElementById('custom-words').value;
+                generateGameData(custom);
+                startGame();
+            }
+        });
+
+        peer.on('connection', (c) => {
+            conn = c;
+            if(asHost) {
+                conn.on('open', () => conn.send({ type: 'sync', words: finalWords, colors: finalColors }));
+            }
+            handleConn();
+        });
+        
+        peer.on('error', err => { if(err.type === 'unavailable-id') alert("房间名已占用，请更换或直接加入"); });
+    }
+
+    function generateGameData(customText) {
+        let pool = customText.trim() ? parseWords(customText) : parseWords(DEFAULT_WORDS_RAW);
+        if(pool.length < 25) {
+            let def = parseWords(DEFAULT_WORDS_RAW).filter(w => !pool.includes(w));
+            while(pool.length < 25) pool.push(def.shift());
+        }
+        
+        let tempPool = [...pool];
+        finalWords = [];
+        for(let i=0; i<25; i++) {
+            let idx = Math.floor(seededRandom(roomSeed + i) * tempPool.length);
+            finalWords.push(tempPool.splice(idx, 1)[0]);
+        }
+
+        // 随机判定先手 (Red or Blue starts with 9)
+        const isRedStart = seededRandom(roomSeed + 999) > 0.5;
+        finalColors = [
+            ...Array(isRedStart ? 9 : 8).fill('type-red'),
+            ...Array(isRedStart ? 8 : 9).fill('type-blue'),
+            ...Array(7).fill('type-neutral'),
+            'type-black'
+        ];
+        // 洗牌颜色
+        for (let i = 24; i > 0; i--) {
+            const j = Math.floor(seededRandom(roomSeed + 88 + i) * (i + 1));
+            [finalColors[i], finalColors[j]] = [finalColors[j], finalColors[i]];
+        }
+    }
+
+    function connectToHost(hostId) {
+        conn = peer.connect(hostId);
+        handleConn();
+    }
+
+    function handleConn() {
+        conn.on('data', (data) => {
+            if(data.type === 'sync') { finalWords = data.words; finalColors = data.colors; startGame(); }
+            if(data.type === 'reveal') executeReveal(data.index, false);
+            if(data.type === 'reset') location.reload();
+            if(data.type === 'log') addLog(data.msg);
+        });
+    }
+
+    function startGame() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'flex';
+        document.getElementById('room-id-tag').innerText = document.getElementById('room-input').value;
+        document.getElementById('status-tag').innerText = "已联网";
+        if(myRole === 'spymaster') document.getElementById('reset-btn').style.display = 'block';
+
+        const grid = document.getElementById('game-grid');
+        grid.className = `grid role-${myRole}`;
+        grid.innerHTML = '';
+
+        finalWords.forEach((word, i) => {
+            const card = document.createElement('div');
+            card.className = `card ${finalColors[i]}`;
+            card.id = `card-${i}`;
+            card.innerText = word;
+            card.onclick = () => handleCardClick(i);
+            grid.appendChild(card);
+        });
+        updateScore();
+        addLog("游戏开始！");
+    }
+
+    function handleCardClick(index) {
+        if(document.getElementById(`card-${index}`).classList.contains('revealed')) return;
+
+        // 二次确认逻辑
+        if (pendingIndex === index) {
+            executeReveal(index, true);
+            pendingIndex = null;
+        } else {
+            if(pendingIndex !== null) document.getElementById(`card-${pendingIndex}`).classList.remove('pending');
+            pendingIndex = index;
+            document.getElementById(`card-${index}`).classList.add('pending');
+        }
+    }
+
+    function executeReveal(index, shouldBroadcast) {
+        const card = document.getElementById(`card-${index}`);
+        card.classList.remove('pending');
+        card.classList.add('revealed');
+        
+        const msg = `翻开了词语:【${finalWords[index]}】`;
+        addLog(msg);
+        updateScore();
+
+        if(shouldBroadcast && conn) {
+            conn.send({ type: 'reveal', index: index });
+            conn.send({ type: 'log', msg: msg });
+        }
+    }
+
+    function addLog(msg) {
+        const log = document.getElementById('game-log');
+        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        log.innerHTML = `<div>[${time}] ${msg}</div>` + log.innerHTML;
+    }
+
+    function updateScore() {
+        let r = 0, b = 0;
+        finalColors.forEach((c, i) => {
+            if(!document.getElementById(`card-${i}`).classList.contains('revealed')) {
+                if(c === 'type-red') r++;
+                if(c === 'type-blue') b++;
+            }
+        });
+        document.getElementById('r-score').innerText = r;
+        document.getElementById('b-score').innerText = b;
+    }
+
+    function broadcastReset() {
+        if(confirm("确定要为所有人重置游戏吗？")) {
+            if(conn) conn.send({ type: 'reset' });
+            location.reload();
+        }
+    }
+
+    function seededRandom(seed) { let x = Math.sin(seed) * 10000; return x - Math.floor(x); }
+    function hashString(str) { let hash = 0; for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i); return Math.abs(hash); }
+</script>
+</body>
+</html>
