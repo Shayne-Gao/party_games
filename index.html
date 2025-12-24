@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Party Games</title>
+    <style>
+        :root {
+            /* 现代黑体字体栈 */
+            --font-stack: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            
+            --bg-color: #0f0f13;
+            --card-bg: #1e1e24;
+            --accent: #00ff9d; /* 赛博霓虹绿 */
+            --text-main: #ffffff;
+            --text-sub: #a0a0a0;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            font-family: var(--font-stack);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px; /* 限制最大宽度，手机平板体验更佳 */
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* 标题样式 */
+        header {
+            margin-bottom: 2.5rem;
+            text-align: left;
+            border-left: 4px solid var(--accent);
+            padding-left: 1rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800; /* 特粗黑体 */
+            margin: 0;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            margin-top: 0.5rem;
+            font-weight: 400;
+        }
+
+        /* 游戏列表容器 */
+        .game-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            flex-grow: 1; /* 让列表占据中间空间 */
+        }
+
+        /* 现代卡片样式 */
+        .game-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-decoration: none;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 触摸/悬停反馈 */
+        .game-card:active, .game-card:hover {
+            transform: scale(0.98);
+            background-color: #25252d;
+            border-color: var(--accent);
+        }
+
+        .game-icon {
+            font-size: 2.5rem;
+            margin-right: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .game-info {
+            flex-grow: 1;
+        }
+
+        .game-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* 箭头图标 */
+        .arrow {
+            opacity: 0.3;
+            font-weight: 300;
+        }
+        .game-card:hover .arrow {
+            opacity: 1;
+            color: var(--accent);
+        }
+
+        .game-desc {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            line-height: 1.4;
+        }
+
+        /* 底部署名 */
+        .footer {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #444;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* 简单的进入动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .game-card {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>聚会桌游<br>工具箱</h1>
+            <div class="subtitle">Select a game to start</div>
+        </header>
+        
+        <div id="game-container" class="game-list">
+            <!-- JS 生成区域 -->
+        </div>
+
+        <div class="footer">
+            Powered by Shayne Gao
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 配置区域
+        // ==========================================
+        const games = [
+            {
+                title: "行动代号",
+                file: "codenames.html",
+                icon: "🕵️‍♂️", 
+                desc: "联想词猜谜，寻找你的特工同伴"
+            },
+            {
+                title: "捉鬼游戏",
+                file: "zhuogui.html",
+                icon: "👻",
+                desc: "语言推理，找出人群中的伪装者"
+            },
+            // 在这里添加新游戏...
+        ];
+
+        // ==========================================
+        // 渲染逻辑
+        // ==========================================
+        const container = document.getElementById('game-container');
+
+        games.forEach((game, index) => {
+            const card = document.createElement('a');
+            card.href = game.file;
+            card.className = 'game-card';
+            // 让卡片依次出现，增加一点高级感
+            card.style.animationDelay = `${index * 0.1}s`; 
+            
+            card.innerHTML = `
+                <div class="game-icon">${game.icon}</div>
+                <div class="game-info">
+                    <div class="game-title">
+                        ${game.title}
+                        <span class="arrow">→</span>
+                    </div>
+                    <div class="game-desc">${game.desc}</div>
+                </div>
+            `;
+            
+            container.appendChild(card);
+        });
+    </script>
+</body>
+</html>
