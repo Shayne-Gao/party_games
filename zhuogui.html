@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>捉鬼大师 PRO - 逻辑修复版</title>
+    <title>捉鬼大师 </title>
     <style>
-        /* 样式保持一致，为节省篇幅略作压缩 */
         :root { --primary: #f39c12; --secondary: #3498db; --ghost: #2c3e50; --bg: #f5f6fa; --card-bg: #ffffff; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; min-height: 100vh; }
         .app-container { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; }
         .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
         .glass-card { background: var(--card-bg); border-radius: 20px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); margin-bottom: 20px; }
         .section-title { font-weight: bold; font-size: 0.9rem; color: #7f8c8d; margin-bottom: 15px; display: block; }
         .role-tag-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
@@ -20,12 +20,16 @@
         .tag-b { background: #fff3e0; color: #fb8c00; }
         .tag-w { background: #f3e5f5; color: #9b59b6; }
         .tag-g { background: #feeef2; color: #e91e63; }
+        
+        /* 翻牌区 */
         .card-container { height: 320px; perspective: 1000px; margin: 20px 0; }
         .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; cursor: pointer; }
         .card-inner.flipped { transform: rotateY(180deg); }
         .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 25px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .card-front { background: var(--primary); color: white; }
         .card-back { background: white; border: 4px solid var(--primary); transform: rotateY(180deg); }
+        
+        /* 投票区 */
         .status-header { background: #2d3436; color: white; padding: 15px; border-radius: 15px; margin-bottom: 20px; cursor: pointer; position: relative; }
         .eye { position: absolute; right: 15px; }
         .names-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -56,15 +60,17 @@
             </div>
             <div class="role-tag-container" id="ui-role-tags"></div>
         </div>
+
         <div class="glass-card">
             <span class="section-title">选择词库分类</span>
             <select id="select-topic" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"></select>
         </div>
+
         <div class="glass-card">
-            <span class="section-title">玩家名单</span>
+            <span class="section-title">玩家名单 (自动保存)</span>
             <div class="names-grid" id="names-container"></div>
         </div>
-        <button class="btn" onclick="onStart()">确定分配，开始发牌</button>
+        <button class="btn" onclick="onStart()">洗牌并开始</button>
     </div>
 
     <div id="page-2" class="page">
@@ -94,16 +100,25 @@
             <div id="st-content" style="display:none; margin-top:10px; border-top:1px solid #555; padding-top:10px;"></div>
         </div>
         <div class="names-grid" id="vote-list"></div>
-        <button class="btn" style="margin-top:20px; background:#95a5a6;" onclick="location.reload()">重新开始</button>
+        <button class="btn" style="margin-top:20px; background:#95a5a6;" onclick="resetToSetup()">再来一局</button>
     </div>
 </div>
 
 <script>
+// --- 完整海量词库 ---
 const rawLibrary = {
     "舌尖诱惑": `火锅|冒菜|一种食物|2\n馒头|包子|一种主食|2\n拿铁|卡布|一种饮品|2\n汉堡|薯条|一种快餐|2\n西瓜|甜瓜|一种水果|2\n荔枝|龙眼|一种水果|2\n螺蛳粉|酸辣粉|一种面食|3\n鸭脖|鸡爪|一种熟食|2\n烤肉|炸鸡|一种荤菜|2\n披萨|意面|意式料理|2\n奶茶|果汁|一种饮品|2\n龙虾|螃蟹|一种海鲜|2\n韭菜|芹菜|一种蔬菜|2\n香蕉|芭蕉|一种水果|2\n饼干|薯片|一种零食|2\n红烧肉|锅包肉|一种肉菜|3\n冰淇淋|圣代|一种甜品|3/2\n麻辣烫|麻辣拌|一种小吃|3\n担担面|热干面|一种面食|3\n米线|粉丝|一种面食|2\n豆浆|牛奶|一种早餐饮品|2\n寿司|饭团|一种和式食物|2\n咖啡|可乐|一种深色饮品|2\n巧克力|棒棒糖|一种甜食|3\n面条|馄饨|一种传统面食|2`,
     "数码科技": `微信|扣扣|社交软件|2\n抖音|快手|短视频软件|2\n淘宝|京东|购物平台|2\n百度|谷歌|搜索引擎|2\n安卓|苹果|手机系统|2\n键盘|鼠标|电脑硬件|2\n华为|小米|手机品牌|2\n蓝牙|显卡|电脑硬件|2\n手办|盲盒|一种潮玩|2\n耳机|音箱|播放设备|2\n平板|电脑|电子产品|2\n投影|电视|显示设备|2\n相机|手机|拍摄设备|2\n充电宝|适配器|电源配件|3/3\n哔哩哔哩|小红书|社区平台|4/3\n王者荣耀|和平精英|竞技手游|4\n快递|外卖|一种配送服务|2\n单反|微单|摄影器材|2\n固态|机械|存储设备|2\n移动|联通|电信运营商|2`,
     "日常琐碎": `牙刷|牙签|日常用品|2\n雨伞|雨衣|雨具|2\n镜子|窗户|居家物品|2\n闹钟|手表|计时工具|2\n钥匙|门卡|生活工具|2\n胶水|胶带|文具用品|2\n纸巾|湿巾|清洁用品|2\n花瓶|盆栽|装饰物品|2\n电扇|空调|降温设备|2\n电梯|楼梯|垂直设施|2\n袜子|手套|服饰配件|2\n钢笔|圆珠笔|书写文具|2\n抹布|毛巾|清洁用品|2\n拖把|扫帚|清扫工具|2\n梳子|刷子|理容工具|2\n信封|明信片|通信载体|2/3\n被子|毯子|床上用品|2`,
-    "职场风云": `钉钉|飞书|办公软件|2\n加班|团建|公司活动|2\n老板|客户|职场人物|2\n周报|总结|职场文书|2\n面试|离职|职场流程|2\n奖金|提成|职场薪资|2\n名片|工牌|职场物件|2\n公章|签字|办公行为|2\n辞职|跳槽|职场变动|2\n入职|试用|职场阶段|2`
+    "职场风云": `钉钉|飞书|办公软件|2\n加班|团建|公司活动|2\n老板|客户|职场人物|2\n周报|总结|职场文书|2\n面试|离职|职场流程|2\n奖金|提成|职场薪资|2\n名片|工牌|职场物件|2\n公章|签字|办公行为|2\n辞职|跳槽|职场变动|2\n入职|试用|职场阶段|2`,
+    "童年回忆": `皮卡丘|喷火龙|虚构生物|3\n大风车|动画城|儿童节目|3\n辣条|冰棍|儿童零食|2\n孙悟空|哪吒|神话人物|3/2\n葫芦娃|黑猫警长|动画角色|3/4\n魂斗罗|玛丽奥|经典游戏|3/4\n陀螺|溜溜球|一种玩具|2/3\n风筝|秋千|户外游戏|2\n西游记|封神榜|经典文学|3\n跳绳|踢毽|课间活动|2`,
+    "运动竞技": `足球|篮球|球类运动|2\n跳水|游泳|水上运动|2\n乒乓|羽毛|小球运动|2\n梅西|詹姆斯|著名运动员|2/3\n世界杯|奥运会|体育赛事|3\n健身|跑步|运动方式|2\n深蹲|俯卧|锻炼动作|2\n裁判|教练|体育相关人物|2`,
+    "大好河山": `故宫|长城|著名古迹|2\n外滩|塔尖|地标建筑|2\n杭州|苏州|江南城市|2\n西藏|新疆|国内边疆|2\n泰山|华山|著名大山|2\n巴黎|伦敦|欧洲城市|2\n洱海|滇池|著名水域|2\n四川|重庆|西南地区|2`,
+    "娱乐圈内": `周杰伦|陈奕迅|华语歌手|3\n成龙|李连杰|动作影星|2/3\n王菲|那英|实力唱将|2\n选秀|晚会|娱乐活动|2\n片酬|票房|行业数据|2\n初恋|前任|娱乐绯闻词|2\n粉丝|水军|娱乐群体|2`,
+    "动物世界": `哈士奇|萨摩耶|一种犬类|3\n企鹅|熊猫|只有两种颜色的动物|2\n大象|鲸鱼|巨型动物|2\n老虎|狮子|大型猫科|2\n苍蝇|蚊子|害虫|2\n蝴蝶|蜻蜓|飞行昆虫|2\n蚂蚁|蜜蜂|社会性昆虫|2\n蛇|蜥蜴|爬行动物|1/2`,
+    "文学经典": `成语|诗词|传统文学形式|2\n三国|水浒|名著简写|2\n李白|杜甫|著名诗人|2\n论语|孟子|儒家经典|2\n小说|散文|文学体裁|2\n武侠|言情|文学风格|2`,
+    "自然科学": `地震|海啸|地质灾害|2\n太阳|月亮|天文星体|2\n氧气|氮气|常见气体|2\n沙漠|雨林|极端环境|2\n重力|摩擦|物理现象|2\n电流|电压|电学名词|2\n进化|变异|生物学名词|2`,
+    "影视名作": `战狼|红海|动作电影|2\n泰坦|阿凡|好莱坞大片|2\n流浪|三体|科幻作品|2\n西游|大话|经典电影|2\n卧虎|藏龙|武侠电影|2`
 };
 
 function parseLib(lib) {
@@ -120,7 +135,7 @@ function parseLib(lib) {
 const library = parseLib(rawLibrary);
 let state = { total: 6, a:0, b:0, g:0, hasW: false, players: [], current: 0, flipped: false, stVisible: false };
 
-// --- 核心修复：Fisher-Yates 洗牌算法 ---
+// --- 随机洗牌算法 (Fisher-Yates) ---
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -137,12 +152,18 @@ function renderSetup() {
     let rem = state.total - state.g;
     let a = Math.floor(rem / 2), b = rem - a, w = 0;
     if(state.hasW) { if(a >= b) a--; else b--; w=1; }
+    
     document.getElementById('ui-total').innerText = state.total;
     document.getElementById('ui-role-tags').innerHTML = `<span class="role-mini-tag tag-a">A组:${a}</span><span class="role-mini-tag tag-b">B组:${b}</span>${w?`<span class="role-mini-tag tag-w">白板:1</span>`:''}<span class="role-mini-tag tag-g">鬼:${state.g}</span>`;
+    
+    // 关键逻辑：保留已输入的昵称
     const container = document.getElementById('names-container');
-    const old = Array.from(container.querySelectorAll('input')).map(i => i.value);
+    const oldInputs = Array.from(container.querySelectorAll('input')).map(i => i.value);
     container.innerHTML = '';
-    for(let i=1; i<=state.total; i++) container.innerHTML += `<input type="text" class="name-input" id="n-${i}" value="${old[i-1]||'玩家'+i}">`;
+    for(let i=1; i<=state.total; i++) {
+        const val = oldInputs[i-1] || `玩家${i}`;
+        container.innerHTML += `<input type="text" class="name-input" id="n-${i}" value="${val}">`;
+    }
     state.a = a; state.b = b;
 }
 
@@ -157,6 +178,7 @@ function initTopics() {
 function onStart() {
     const topic = document.getElementById('select-topic').value;
     const items = library[topic];
+    if(!items) { alert("词库加载错误"); return; }
     const set = items[Math.floor(Math.random()*items.length)];
     
     let rolePool = [];
@@ -165,10 +187,8 @@ function onStart() {
     if(state.hasW) rolePool.push({role:'W', w:'???', l:'白板 (好人阵营)'});
     for(let i=0; i<state.g; i++) rolePool.push({role:'G', w:set.h, l:'你是鬼 (看提示)'});
 
-    // 使用修复后的彻底洗牌算法
     shuffle(rolePool);
 
-    // 重新关联昵称
     state.players = rolePool.map((x, i) => ({
         name: document.getElementById(`n-${i+1}`).value,
         ...x,
@@ -239,6 +259,23 @@ function updateStatus() {
     if(g===0) alert("🎉 好人获胜！所有的鬼已被投出");
     else if(g >= goods) alert("💀 鬼获胜！人数对鬼有利");
     else if(a===0 || b===0) alert("💀 鬼获胜！一组好人已全灭");
+}
+
+// --- 新增：软重置功能 ---
+function resetToSetup() {
+    // 仅重置游戏进程数据
+    state.current = 0;
+    state.flipped = false;
+    state.players = [];
+    state.stVisible = false;
+    
+    // UI 重置
+    document.getElementById('st-content').style.display = 'none';
+    document.getElementById('st-title').innerText = '📊 存活统计 (已隐藏)';
+    document.getElementById('st-eye').innerText = '👁️‍🗨️';
+    
+    // 返回首页，不刷新页面，从而保留输入框的值和配置
+    showPage(1);
 }
 
 function showPage(n) {
