@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>通用发牌器 (自动保存版)</title>
+    <style>
+        :root { 
+            --primary: #5758BB; 
+            --accent: #FFC312; 
+            --danger: #EA2027; 
+            --bg: #f1f2f6; 
+            --card-bg: #ffffff; 
+            --text: #2f3542; 
+            --input-bg: #dfe4ea;
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg); 
+            color: var(--text);
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            min-height: 100vh;
+            overflow-x: hidden; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .app-container { 
+            width: 100%; 
+            max-width: 500px; 
+            padding: 20px; 
+            box-sizing: border-box; 
+            padding-bottom: 50px;
+        }
+
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .glass-card { 
+            background: var(--card-bg); 
+            border-radius: 20px; 
+            padding: 20px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05); 
+            margin-bottom: 20px; 
+        }
+        
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .section-title { font-weight: bold; font-size: 1rem; color: #57606f; }
+        .total-badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; }
+
+        .group-row {
+            background: #f7f9fa; border-radius: 12px; padding: 12px; margin-bottom: 12px;
+            border: 1px solid #eee; position: relative;
+        }
+        .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .group-inputs { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        
+        input {
+            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;
+            box-sizing: border-box; font-size: 0.95rem; background: white; transition: 0.2s;
+        }
+        input:focus { border-color: var(--primary); outline: none; }
+
+        .stepper { display: flex; align-items: center; background: white; border-radius: 8px; border: 1px solid #ddd; overflow: hidden; }
+        .step-btn { width: 32px; height: 32px; border: none; background: #f1f2f6; font-weight: bold; font-size: 1.2rem; cursor: pointer; color: var(--text); }
+        .step-val { width: 30px; text-align: center; font-weight: bold; font-size: 1rem; }
+        .del-btn {
+            background: #ff7675; color: white; border: none; width: 24px; height: 24px;
+            border-radius: 50%; font-size: 1rem; line-height: 1; cursor: pointer;
+            position: absolute; top: -8px; right: -8px;
+        }
+
+        .btn { 
+            background: var(--text); color: white; border: none; padding: 15px; 
+            border-radius: 12px; font-size: 1.1rem; font-weight: bold; width: 100%; 
+            cursor: pointer; margin-top: 10px; transition: 0.2s; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .btn-add { background: var(--primary); margin-top: 0; width: auto; padding: 8px 20px; font-size: 0.9rem; }
+        .btn-outline { background: transparent; border: 2px solid var(--text); color: var(--text); }
+        .btn-danger { background: transparent; color: #a4b0be; font-size: 0.8rem; margin-top: 30px; border: 1px dashed #ccc; box-shadow: none; }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
+
+        /* 发牌动画区 */
+        .card-container { width: 100%; height: 40vh; min-height: 280px; perspective: 1000px; margin: 20px 0; position: relative; z-index: 10; }
+        .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; cursor: pointer; }
+        .card-inner.flipped { transform: rotateY(180deg); }
+        .card-front, .card-back { 
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
+            border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            padding: 20px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+        }
+        .card-front { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; }
+        .card-back { background: white; border: 4px solid var(--primary); transform: rotateY(180deg); }
+
+        .names-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .vote-item { 
+            background: white; padding: 15px; border-radius: 10px; text-align: center; 
+            font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+            border: 2px solid transparent; cursor: pointer; position: relative;
+        }
+        .vote-item.out { background: #dfe6e9; color: #b2bec3; text-decoration: line-through; pointer-events: none; }
+        
+        .status-header { background: var(--text); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; padding-bottom: 5px; border-bottom: 1px dashed #eee; }
+        .stat-row:last-child { border: none; margin: 0; padding: 0; }
+        .stat-alive { color: var(--primary); font-weight: bold; }
+        
+        /* 保存提示 */
+        #save-toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px;
+            font-size: 0.8rem; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+<div id="save-toast">已自动保存</div>
+
+<div class="app-container">
+
+    <div id="page-setup" class="page active">
+        <h1 style="text-align: center; margin: 10px 0;">🃏 通用发牌器</h1>
+        <p style="text-align: center; color: #a4b0be; font-size: 0.85rem; margin-bottom: 20px;">支持断点续传 · 自动保存</p>
+
+        <div class="glass-card">
+            <div class="section-header">
+                <span class="section-title">身份组配置</span>
+                <span class="total-badge">总人数: <span id="ui-total">0</span></span>
+            </div>
+            <div id="groups-container">
+                </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn btn-add" onclick="addNewGroup()">+ 添加新组</button>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <span class="section-title">玩家昵称</span>
+            <div class="names-grid" id="names-container"></div>
+        </div>
+
+        <button class="btn" onclick="startGame()">生成卡牌并开始</button>
+        
+        <button class="btn btn-danger" onclick="clearCache()">⚠️ 清空缓存并重置</button>
+    </div>
+
+    <div id="page-deal" class="page">
+        <h2 style="text-align:center;">身份发放</h2>
+        <p id="turn-msg" style="text-align:center; color:#7f8c8d; font-size: 0.9rem;"></p>
+        
+        <div class="card-container" onclick="handleCardTap()">
+            <div class="card-inner" id="card-inner">
+                <div class="card-front">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">📩</div>
+                    <div id="p-name-disp" style="font-size: 1.5rem; font-weight: bold;"></div>
+                    <p id="front-sub">点击翻开</p>
+                </div>
+                <div class="card-back">
+                    <div id="group-name-disp" style="font-size: 0.9rem; color: #a4b0be; margin-bottom: 5px; font-weight: bold;"></div>
+                    <div id="word-disp" style="font-size: 2rem; font-weight: bold; margin: 10px 0; word-break: break-all; color: var(--text);"></div>
+                    <div style="font-size: 0.9rem; color: #95a5a6; margin-top: 20px;">请记住你的信息</div>
+                    <p style="font-size: 0.8rem; color: var(--primary); margin-top: 25px;">(再次点击隐藏并传递)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-game" class="page">
+        <h2 style="text-align:center;">游戏进行中</h2>
+        
+        <div class="status-header" onclick="toggleStatus()">
+            <span id="st-title">📊 存活情况 (点击展开)</span>
+            <span id="st-icon">▼</span>
+        </div>
+        
+        <div id="st-detail" style="display:none; background:white; padding:15px; border-radius:12px; margin-bottom:20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            </div>
+
+        <div class="names-grid" id="vote-grid"></div>
+        
+        <button class="btn btn-outline" style="margin-top:20px;" onclick="softReset()">返回配置页</button>
+    </div>
+
+</div>
+
+<script>
+// --- 持久化常量 ---
+const STORAGE_KEY = 'universal_dealer_data_v1';
+
+// --- 状态管理 ---
+let state = {
+    groups: [
+        { id: 1, name: '平民', count: 4, word: '' },
+        { id: 2, name: '卧底', count: 1, word: '' },
+    ],
+    savedNames: {}, // 专门存储玩家昵称 {0: "张三", 1: "李四"}
+    total: 0,
+    players: [],
+    currentIdx: 0,
+    flipped: false,
+    stVisible: false
+};
+
+// 页面加载
+window.onload = function() {
+    loadData(); // 先尝试加载数据
+    renderGroups();
+    updateTotal();
+};
+
+// --- 持久化逻辑 ---
+
+function saveData() {
+    // 仅保存配置相关的数据
+    const dataToSave = {
+        groups: state.groups,
+        savedNames: state.savedNames
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    // showSaveToast(); // 可选：显示保存提示，为了不打扰用户暂不开启
+}
+
+function loadData() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            const data = JSON.parse(raw);
+            if (data.groups && Array.isArray(data.groups)) {
+                state.groups = data.groups;
+            }
+            if (data.savedNames) {
+                state.savedNames = data.savedNames;
+            }
+        }
+    } catch (e) {
+        console.error("读取缓存失败", e);
+    }
+}
+
+function clearCache() {
+    if(confirm("确定要清空所有已保存的配置（组名、人数、昵称）吗？此操作无法撤销。")) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+    }
+}
+
+function showSaveToast() {
+    const toast = document.getElementById('save-toast');
+    toast.style.opacity = 1;
+    setTimeout(() => { toast.style.opacity = 0; }, 1000);
+}
+
+// --- 配置页逻辑 ---
+
+function addNewGroup() {
+    const newId = Date.now();
+    state.groups.push({ id: newId, name: '', count: 1, word: '' });
+    saveData();
+    renderGroups();
+    updateTotal();
+}
+
+function removeGroup(id) {
+    if (state.groups.length <= 1) {
+        alert("至少需要保留一个组");
+        return;
+    }
+    state.groups = state.groups.filter(g => g.id !== id);
+    saveData();
+    renderGroups();
+    updateTotal();
+}
+
+function adjustCount(id, delta) {
+    const group = state.groups.find(g => g.id === id);
+    if (group) {
+        const newVal = group.count + delta;
+        if (newVal >= 1) {
+            group.count = newVal;
+            saveData();
+            document.getElementById(`count-${id}`).innerText = newVal;
+            updateTotal();
+        }
+    }
+}
+
+function updateGroupData(id, field, val) {
+    const group = state.groups.find(g => g.id === id);
+    if (group) {
+        group[field] = val;
+        saveData();
+    }
+}
+
+function updatePlayerName(idx, val) {
+    state.savedNames[idx] = val;
+    saveData();
+}
+
+function renderGroups() {
+    const container = document.getElementById('groups-container');
+    container.innerHTML = '';
+    
+    state.groups.forEach((g, index) => {
+        const div = document.createElement('div');
+        div.className = 'group-row';
+        div.innerHTML = `
+            ${index > 0 ? `<button class="del-btn" onclick="removeGroup(${g.id})">×</button>` : ''}
+            <div class="group-header">
+                <input type="text" placeholder="组名 (如: 平民)" value="${g.name}" 
+                       oninput="updateGroupData(${g.id}, 'name', this.value)" 
+                       style="font-weight:bold; width: 60%;">
+                <div class="stepper">
+                    <button class="step-btn" onclick="adjustCount(${g.id}, -1)">-</button>
+                    <div class="step-val" id="count-${g.id}">${g.count}</div>
+                    <button class="step-btn" onclick="adjustCount(${g.id}, 1)">+</button>
+                </div>
+            </div>
+            <div class="group-inputs">
+                <input type="text" placeholder="该组看到的词/内容" value="${g.word}" 
+                       oninput="updateGroupData(${g.id}, 'word', this.value)" style="grid-column: span 2;">
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function updateTotal() {
+    const total = state.groups.reduce((sum, g) => sum + g.count, 0);
+    state.total = total;
+    document.getElementById('ui-total').innerText = total;
+    renderNameInputs();
+}
+
+function renderNameInputs() {
+    const grid = document.getElementById('names-container');
+    const existing = grid.children;
+    
+    // 渲染或更新输入框
+    // 这里的逻辑稍微调整，每次重新渲染确保顺序和值正确
+    grid.innerHTML = ''; 
+    for (let i = 0; i < state.total; i++) {
+        const inp = document.createElement('input');
+        // 优先使用保存的昵称，没有则显示默认占位
+        const savedVal = state.savedNames[i] || "";
+        inp.value = savedVal;
+        inp.placeholder = (i + 1) + "号玩家";
+        inp.id = `name-inp-${i}`;
+        // 绑定输入事件进行保存
+        inp.oninput = function() { updatePlayerName(i, this.value); };
+        grid.appendChild(inp);
+    }
+}
+
+// --- 游戏启动与发牌 ---
+
+function startGame() {
+    // 校验
+    if (state.total < 2) { alert("总人数太少"); return; }
+    for (let g of state.groups) {
+        if (!g.name.trim()) { alert("请填写所有组名"); return; }
+        if (!g.word.trim()) { alert(`请填写 [${g.name}] 组的词语/内容`); return; }
+    }
+
+    // 生成角色池
+    let pool = [];
+    state.groups.forEach(g => {
+        for (let k = 0; k < g.count; k++) {
+            pool.push({ groupName: g.name, word: g.word });
+        }
+    });
+
+    // 洗牌 (Fisher-Yates)
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+
+    // 绑定玩家
+    state.players = pool.map((role, i) => ({
+        // 如果输入框是空的，使用默认占位符作为名字
+        name: state.savedNames[i] || ((i + 1) + "号"),
+        groupName: role.groupName,
+        word: role.word,
+        out: false,
+        id: i
+    }));
+
+    // 初始化界面状态
+    state.currentIdx = 0;
+    state.flipped = false;
+    showPage('deal');
+    renderCard();
+}
+
+function renderCard() {
+    const p = state.players[state.currentIdx];
+    const card = document.getElementById('card-inner');
+    card.classList.remove('flipped');
+    
+    document.getElementById('p-name-disp').innerText = p.name;
+    document.getElementById('front-sub').innerText = "点击查看";
+    document.getElementById('turn-msg').innerText = `请 ${p.name} 接过手机`;
+}
+
+function handleCardTap() {
+    const card = document.getElementById('card-inner');
+    const p = state.players[state.currentIdx];
+    
+    if (!state.flipped) {
+        // 翻开
+        document.getElementById('group-name-disp').innerText = `【${p.groupName}】`;
+        document.getElementById('word-disp').innerText = p.word;
+        card.classList.add('flipped');
+        state.flipped = true;
+    } else {
+        // 隐藏并下一步
+        card.classList.remove('flipped');
+        state.flipped = false;
+        document.getElementById('front-sub').innerText = "已隐藏，传给下一位";
+        
+        setTimeout(() => {
+            state.currentIdx++;
+            if (state.currentIdx < state.total) {
+                renderCard();
+            } else {
+                showPage('game');
+                renderVoteBoard();
+                updateStats(); // 初始化统计
+            }
+        }, 600);
+    }
+}
+
+// --- 投票与统计 ---
+
+function renderVoteBoard() {
+    const grid = document.getElementById('vote-grid');
+    grid.innerHTML = '';
+    
+    state.players.forEach(p => {
+        const div = document.createElement('div');
+        div.className = `vote-item ${p.out ? 'out' : ''}`;
+        div.innerText = p.name;
+        div.onclick = () => {
+            if (!p.out && confirm(`确认投出 [${p.name}] 吗？`)) {
+                p.out = true;
+                renderVoteBoard(); // 重绘以显示划线
+                updateStats(); // 更新统计
+            }
+        };
+        grid.appendChild(div);
+    });
+}
+
+function updateStats() {
+    const container = document.getElementById('st-detail');
+    container.innerHTML = '';
+    
+    // 按组统计
+    state.groups.forEach(g => {
+        // 计算该组当前存活人数
+        const aliveCount = state.players.filter(p => p.groupName === g.name && !p.out).length;
+        
+        const row = document.createElement('div');
+        row.className = 'stat-row';
+        row.innerHTML = `
+            <span>${g.name}</span>
+            <span>剩余: <span class="stat-alive">${aliveCount}</span> / ${g.count}</span>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function toggleStatus() {
+    state.stVisible = !state.stVisible;
+    const detail = document.getElementById('st-detail');
+    const title = document.getElementById('st-title');
+    const icon = document.getElementById('st-icon');
+    
+    if (state.stVisible) {
+        detail.style.display = 'block';
+        title.innerText = "📊 存活情况 (点击折叠)";
+        icon.innerText = "▲";
+    } else {
+        detail.style.display = 'none';
+        title.innerText = "📊 存活情况 (点击展开)";
+        icon.innerText = "▼";
+    }
+}
+
+function softReset() {
+    // 重置游戏过程数据，但保留 setup 数据
+    state.currentIdx = 0;
+    state.flipped = false;
+    state.stVisible = false;
+    document.getElementById('st-detail').style.display = 'none';
+    showPage('setup');
+}
+
+function showPage(id) {
+    document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+    document.getElementById('page-'+id).classList.add('active');
+}
+
+</script>
+</body>
+</html>
