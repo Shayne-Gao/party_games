@@ -3,11 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>捉鬼大师 </title>
+    <title>捉鬼大师 PRO - 完美适配版</title>
     <style>
         :root { --primary: #f39c12; --secondary: #3498db; --ghost: #2c3e50; --bg: #f5f6fa; --card-bg: #ffffff; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; min-height: 100vh; }
-        .app-container { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; }
+        
+        /* 核心修复 1: 防止页面左右横向滚动 */
+        body { 
+            font-family: -apple-system, sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            min-height: 100vh;
+            overflow-x: hidden; 
+        }
+
+        .app-container { 
+            width: 100%; 
+            max-width: 480px; 
+            padding: 20px; 
+            box-sizing: border-box; 
+        }
+
         .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -21,14 +38,36 @@
         .tag-w { background: #f3e5f5; color: #9b59b6; }
         .tag-g { background: #feeef2; color: #e91e63; }
         
-        /* 翻牌区 */
-        .card-container { height: 320px; perspective: 1000px; margin: 20px 0; }
+        /* 核心修复 2: 卡片尺寸优化 */
+        .card-container { 
+            width: 100%; /* 强制宽度铺满容器 */
+            /* 高度改为视窗高度的40%，或者最小260px，避免在小屏上太大 */
+            height: 40vh; 
+            min-height: 260px;
+            max-height: 350px;
+            perspective: 1000px; 
+            margin: 20px 0; 
+        }
+        
         .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; cursor: pointer; }
         .card-inner.flipped { transform: rotateY(180deg); }
-        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 25px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        .card-front, .card-back { 
+            position: absolute; width: 100%; height: 100%; 
+            backface-visibility: hidden; 
+            border-radius: 25px; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            padding: 15px; /* 减小内边距 */
+            box-sizing: border-box; /* 确保padding不撑大宽度 */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+        }
         .card-front { background: var(--primary); color: white; }
         .card-back { background: white; border: 4px solid var(--primary); transform: rotateY(180deg); }
         
+        /* 字体大小微调，防止溢出 */
+        #front-icon { font-size: 3rem; margin-bottom: 10px; }
+        #word-val { font-size: 1.8rem; font-weight: bold; margin: 15px 0; line-height: 1.2; word-break: break-all; }
+
         /* 投票区 */
         .status-header { background: #2d3436; color: white; padding: 15px; border-radius: 15px; margin-bottom: 20px; cursor: pointer; position: relative; }
         .eye { position: absolute; right: 15px; }
@@ -76,16 +115,17 @@
     <div id="page-2" class="page">
         <h2 style="text-align:center;">身份发放</h2>
         <p id="turn-hint" style="text-align:center; color:#666;"></p>
+        
         <div class="card-container" onclick="handleFlip()">
             <div class="card-inner" id="card-inner">
                 <div class="card-front">
-                    <div id="front-icon" style="font-size:3rem; margin-bottom:10px;">🤫</div>
-                    <div id="p-name" style="font-size:1.5rem; font-weight:bold;"></div>
+                    <div id="front-icon">🤫</div>
+                    <div id="p-name" style="font-size:1.4rem; font-weight:bold;"></div>
                     <p id="front-tip">点击翻牌</p>
                 </div>
                 <div class="card-back">
                     <div id="role-label" style="font-size:0.9rem; color:var(--primary); font-weight:bold;"></div>
-                    <div id="word-val" style="font-size:1.8rem; font-weight:bold; margin:20px 0; line-height:1.2;"></div>
+                    <div id="word-val"></div>
                     <p style="font-size:0.8rem; color:#95a5a6;">点击隐藏并传递手机</p>
                 </div>
             </div>
@@ -100,12 +140,12 @@
             <div id="st-content" style="display:none; margin-top:10px; border-top:1px solid #555; padding-top:10px;"></div>
         </div>
         <div class="names-grid" id="vote-list"></div>
-        <button class="btn" style="margin-top:20px; background:#95a5a6;" onclick="resetToSetup()">再来一局</button>
+        <button class="btn" style="margin-top:20px; background:#95a5a6;" onclick="resetToSetup()">再来一局 (保留设置)</button>
     </div>
 </div>
 
 <script>
-// --- 完整海量词库 ---
+// --- 完整海量词库 (包含所有分类) ---
 const rawLibrary = {
     "舌尖诱惑": `火锅|冒菜|一种食物|2\n馒头|包子|一种主食|2\n拿铁|卡布|一种饮品|2\n汉堡|薯条|一种快餐|2\n西瓜|甜瓜|一种水果|2\n荔枝|龙眼|一种水果|2\n螺蛳粉|酸辣粉|一种面食|3\n鸭脖|鸡爪|一种熟食|2\n烤肉|炸鸡|一种荤菜|2\n披萨|意面|意式料理|2\n奶茶|果汁|一种饮品|2\n龙虾|螃蟹|一种海鲜|2\n韭菜|芹菜|一种蔬菜|2\n香蕉|芭蕉|一种水果|2\n饼干|薯片|一种零食|2\n红烧肉|锅包肉|一种肉菜|3\n冰淇淋|圣代|一种甜品|3/2\n麻辣烫|麻辣拌|一种小吃|3\n担担面|热干面|一种面食|3\n米线|粉丝|一种面食|2\n豆浆|牛奶|一种早餐饮品|2\n寿司|饭团|一种和式食物|2\n咖啡|可乐|一种深色饮品|2\n巧克力|棒棒糖|一种甜食|3\n面条|馄饨|一种传统面食|2`,
     "数码科技": `微信|扣扣|社交软件|2\n抖音|快手|短视频软件|2\n淘宝|京东|购物平台|2\n百度|谷歌|搜索引擎|2\n安卓|苹果|手机系统|2\n键盘|鼠标|电脑硬件|2\n华为|小米|手机品牌|2\n蓝牙|显卡|电脑硬件|2\n手办|盲盒|一种潮玩|2\n耳机|音箱|播放设备|2\n平板|电脑|电子产品|2\n投影|电视|显示设备|2\n相机|手机|拍摄设备|2\n充电宝|适配器|电源配件|3/3\n哔哩哔哩|小红书|社区平台|4/3\n王者荣耀|和平精英|竞技手游|4\n快递|外卖|一种配送服务|2\n单反|微单|摄影器材|2\n固态|机械|存储设备|2\n移动|联通|电信运营商|2`,
@@ -261,20 +301,15 @@ function updateStatus() {
     else if(a===0 || b===0) alert("💀 鬼获胜！一组好人已全灭");
 }
 
-// --- 新增：软重置功能 ---
+// --- 软重置功能：保留配置 ---
 function resetToSetup() {
-    // 仅重置游戏进程数据
     state.current = 0;
     state.flipped = false;
     state.players = [];
     state.stVisible = false;
-    
-    // UI 重置
     document.getElementById('st-content').style.display = 'none';
     document.getElementById('st-title').innerText = '📊 存活统计 (已隐藏)';
     document.getElementById('st-eye').innerText = '👁️‍🗨️';
-    
-    // 返回首页，不刷新页面，从而保留输入框的值和配置
     showPage(1);
 }
 
