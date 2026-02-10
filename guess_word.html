@@ -3,157 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>猜词达人 - 极简配置版</title>
+    <title>猜词达人 - 终极复盘版</title>
     <style>
-        :root {
-            --primary: #6366f1;
-            --success: #22c55e;
-            --danger: #ef4444;
-            --bg: #0f172a;
-        }
-
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            font-family: -apple-system, system-ui, sans-serif;
-            background: var(--bg); color: white; overflow: hidden;
-            touch-action: manipulation;
-        }
-
-        .screen {
-            display: none; width: 100%; height: 100%;
-            flex-direction: column; align-items: center; justify-content: center;
-            position: absolute; top: 0; left: 0; padding: 20px; box-sizing: border-box;
-        }
-
+        :root { --primary: #6366f1; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; --bg: #0f172a; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: white; overflow: hidden; touch-action: manipulation; }
+        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; padding: 20px; box-sizing: border-box; }
         .active { display: flex; }
-
-        /* 配置页 */
-        .config-card {
-            background: rgba(255,255,255,0.05); padding: 25px; border-radius: 24px;
-            width: 90%; max-width: 400px; border: 1px solid rgba(255,255,255,0.1);
-        }
-
+        .config-card { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 24px; width: 90%; max-width: 400px; border: 1px solid rgba(255,255,255,0.1); }
         h1 { font-size: 2rem; margin: 0 0 10px 0; text-align: center; }
-        label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 0.9rem; }
-
-        select {
-            width: 100%; padding: 15px; margin-bottom: 20px;
-            border-radius: 12px; border: 2px solid #334155;
-            background: #1e293b; color: white; font-size: 1.1rem; outline: none;
-        }
-
-        .btn {
-            width: 100%; padding: 18px; border-radius: 15px; border: none;
-            background: var(--primary); color: white; font-size: 1.2rem; font-weight: bold;
-            cursor: pointer; transition: transform 0.1s;
-        }
-
-        .btn:active { transform: scale(0.95); }
-
-        /* 游戏页 */
+        .hint-text { font-size: 0.85rem; color: #94a3b8; text-align: center; margin-bottom: 20px; line-height: 1.6; }
+        select { width: 100%; padding: 15px; margin-bottom: 20px; border-radius: 12px; border: 2px solid #334155; background: #1e293b; color: white; font-size: 1.1rem; outline: none; }
+        .btn { width: 100%; padding: 18px; border-radius: 15px; border: none; background: var(--primary); color: white; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
         #game-screen { background: #000; }
         #word-display { font-size: 18vw; font-weight: 900; text-align: center; z-index: 10; pointer-events: none; }
-        
-        #timer-bar {
-            position: absolute; top: 0; left: 0; height: 10px;
-            background: var(--primary); width: 100%; transition: width 0.3s;
-        }
-
-        .tap-zone {
-            position: absolute; top: 0; height: 100%; width: 50%;
-            display: flex; align-items: flex-end; justify-content: center;
-            padding-bottom: 5vh; font-size: 1.1rem; font-weight: bold; z-index: 5;
-        }
-        #left-zone { left: 0; color: var(--success); background: linear-gradient(to top, rgba(34,197,94,0.1), transparent); }
-        #right-zone { right: 0; color: var(--danger); background: linear-gradient(to top, rgba(239,68,68,0.1), transparent); }
-
-        /* 结算页 */
-        .score-num { font-size: 8rem; font-weight: 800; color: var(--primary); margin: 10px 0; }
-        
-        /* 动画反馈 */
+        #timer-bar { position: absolute; top: 0; left: 0; height: 10px; background: var(--primary); width: 100%; transition: width 0.3s; }
+        .tap-zone { position: absolute; top: 0; height: 100%; width: 50%; display: flex; align-items: center; justify-content: center; z-index: 5; opacity: 0.1; }
+        #left-zone { left: 0; background: var(--success); }
+        #right-zone { right: 0; background: var(--danger); }
+        #result-screen { justify-content: flex-start; overflow-y: auto; padding-top: 40px; }
+        .score-num { font-size: 6rem; font-weight: 800; color: var(--primary); margin: 0; line-height: 1.2; }
+        .history-container { width: 100%; max-width: 400px; margin-top: 20px; background: rgba(255,255,255,0.05); border-radius: 15px; padding: 10px; max-height: 45vh; overflow-y: auto; }
+        .history-item { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .status-ok { color: var(--success); }
+        .status-skip { color: var(--danger); }
+        .status-none { color: var(--warning); font-style: italic; font-size: 0.9rem; }
         .flash-success { animation: flashG 0.4s; }
         .flash-danger { animation: flashR 0.4s; }
-        @keyframes flashG { from { background: rgba(34,197,94,0.5); } to { background: #000; } }
-        @keyframes flashR { from { background: rgba(239,68,68,0.5); } to { background: #000; } }
+        @keyframes flashG { from { background: var(--success); } to { background: #000; } }
+        @keyframes flashR { from { background: var(--danger); } to { background: #000; } }
     </style>
 </head>
 <body>
-
     <div id="setup-screen" class="screen active">
         <h1>猜词达人</h1>
+        <div class="hint-text">操作：扣下/左点(正确) | 仰头/右点(跳过)</div>
         <div class="config-card">
-            <label>🎬 选择题库</label>
             <select id="category-select"></select>
-            
-            <label>⏱️ 游戏时长</label>
             <select id="time-select">
                 <option value="60">60 秒</option>
                 <option value="90" selected>90 秒</option>
                 <option value="120">120 秒</option>
             </select>
-            
-            <button class="btn" onclick="startGame()">准备好了！</button>
+            <button class="btn" onclick="requestPermissionAndStart()">开始挑战</button>
         </div>
     </div>
-
     <div id="game-screen" class="screen">
         <div id="timer-bar"></div>
-        <div id="left-zone" class="tap-zone" onclick="handleResult(true)">正确 ✔</div>
-        <div id="right-zone" class="tap-zone" onclick="handleResult(false)">跳过 ✘</div>
+        <div id="left-zone" class="tap-zone" onclick="handleResult(true)"></div>
+        <div id="right-zone" class="tap-zone" onclick="handleResult(false)"></div>
         <div id="word-display">3</div>
     </div>
-
     <div id="result-screen" class="screen">
-        <h2>得分</h2>
+        <h2 style="margin:0">得分</h2>
         <div class="score-num" id="final-score">0</div>
-        <p id="stats-detail" style="color:#94a3b8; margin-bottom:30px;"></p>
-        <button class="btn" style="max-width:200px" onclick="location.reload()">回主页</button>
+        <p id="stats-detail" style="color:#94a3b8; margin: 10px 0;"></p>
+        <div class="history-container" id="history-list"></div>
+        <button class="btn" style="max-width:200px; margin-top: 20px;" onclick="location.reload()">再来一局</button>
     </div>
 
     <script id="vocabulary-data" type="text/plain">
-    
         🎬 经典影视: 战狼 流浪地球 霸王别姬 西游记 红楼梦 甄嬛传 大话西游 哪吒 疯狂的石头 泰坦尼克号 阿凡达 哈利波特 复仇者联盟 变形金刚 蜘蛛侠 蝙蝠侠 超人 狮子王 寻梦环游记 千与千寻 武林外传 亮剑 家有儿女 还珠格格 潜伏 琅琊榜 庆余年 隐秘的角落 狂飙 繁花 漫长的季节 教父 盗梦空间 星际穿越 黑客帝国 肖申克的救赎 阿甘正传 少年派 功夫 少林足球 喜剧之王 卧虎藏龙 英雄 无间道 重庆森林 花样年华 倩女幽魂 白蛇传 封神榜 上海滩
-
         🦁 动物世界: 大熊猫 金丝猴 东北虎 扬子鳄 藏羚羊 长颈鹿 斑马 袋鼠 企鹅 河马 犀牛 北极熊 变色龙 啄木鸟 猫头鹰 蜂鸟 大白鲨 海豚 蓝鲸 章鱼 海马 螃蟹 龙虾 萤火虫 螳螂 蝴蝶 蜻蜓 蜈蚣 蝎子 土拨鼠 羊驼 哈士奇 树懒 考拉 浣熊 刺猬 松鼠 蝙蝠 骆驼 鸵鸟 火烈鸟 孔雀 天鹅 鹦鹉 乌鸦 喜鹊 秃鹫 水豚 蜜獾 鸭嘴兽
-
-        📖 成语名句: 狐假虎威 画蛇添足 掩耳盗铃 拔苗助长 亡羊补牢 守株待兔 顺手牵羊 指鹿为马 闻鸡起舞 凿壁偷光 悬梁刺股 卧薪尝胆 破釜沉舟 背水一战 四面楚歌 草船借箭 三顾茅庐 望梅止渴 画饼充饥 口蜜腹剑 笑里藏刀 精忠报国 大义灭亲 铁公鸡 落汤鸡 马后炮 泼冷水 炒鱿鱼 背锅侠 纸上谈兵 对牛弹琴 盲人摸象 刻舟求剑 惊弓之鸟 如鱼得水 呆若木鸡 如虎添翼 胆小如鼠 对酒当歌 心有灵犀 朝三暮四 塞翁失马 半途而废 一鸣惊人 一石二鸟 一见钟情 走马观花 青梅竹马 名副其实
-
+        📖 成语名句: 狐假虎威 画蛇添足 掩耳盗铃 拔苗助长 亡羊补牢 守株待兔 顺手牵羊 指鹿为马 闻鸡起舞 凿壁偷光 悬梁刺股 卧薪尝胆 破釜沉舟 背水一战 四面楚歌 草船借箭 三顾庐 望梅止渴 画饼充饥 口蜜腹剑 笑里藏刀 精忠报国 大义灭亲 铁公鸡 落汤鸡 马后炮 泼冷水 炒鱿鱼 背锅侠 纸上谈兵 对牛弹琴 盲人摸象 刻舟求剑 惊弓之鸟 如鱼得水 呆若木鸡 如虎添翼 胆小如鼠 对酒当歌 心有灵犀 朝三暮四 塞翁失马 半途而废 一鸣惊人 一石二鸟 一见钟情 走马观花 青梅竹马 名副其实
         🔥 网络热梗: 遥遥领先 你太美 鸡哥 人类高质量男性 栓Q 芭比Q了 你个老六 想你的风 小黑子 尊嘟假嘟 恐龙扛狼 哈基米 特种兵旅游 命运的齿轮 显眼包 硬核 破防 躺平 内卷 柠檬精 雨女无瓜 奥利给 淡黄的长裙 这谁顶得住 真香 扎心了 元宇宙 数字化 斜杠青年 社恐 社牛 凡尔赛 凡尔赛文学 emo YYDS 绝绝子 夺笋 爷青回 干饭人 打工人 双减 碳中和 蓝瘦香菇 皮皮虾我们走 洪荒之力 葛优躺 友谊的小船 针不戳
-
-        🗺️ 地理常识: 北京 上海 广州 深圳 长城 故宫 东方明珠 西湖 兵马俑 黄山 泰山 喜马拉雅山 珠穆朗玛峰 长江 黄河 太平洋 大西洋 印度洋 南极 北极 撒哈拉沙漠 亚马逊雨林 埃菲尔铁塔 金字塔 自由女神像 悉尼歌剧院 大本钟 富士山 长白山 青海湖 洞庭湖 鄱阳湖 张家界 九寨沟 桂林山水 天涯海角 布达拉宫 莫高窟 乐山大佛 华山 嵩山 恒山 衡山 昆仑山 峨眉山 五台山 普陀山 台湾岛 海南岛 鼓浪屿
-
+        🗺️ 地理常识: 北京 上海 广州 深圳 长城 故宫 东方明珠 西湖 兵马俑 黄山 泰山 喜马拉雅山 珠莫朗玛峰 长江 黄河 太平洋 大西洋 印度洋 南极 北极 撒哈拉沙漠 亚马逊雨林 埃菲尔铁塔 金字塔 自由女神像 悉尼歌剧院 大本钟 富士山 长白山 青海湖 洞庭湖 鄱阳湖 张家界 九寨沟 桂林山水 天涯海角 布达拉宫 莫高窟 乐山大佛 华山 嵩山 恒山 衡山 昆仑山 峨眉山 五台山 普陀山 台湾岛 海南岛 鼓浪屿
         🏠 生活用品: 牙刷 毛巾 梳子 镜子 洗面奶 洗发水 沐浴露 牙膏 电吹风 指甲刀 剃须刀 马桶刷 拖把 扫帚 垃圾桶 衣架 洗衣机 电冰箱 微波炉 电饭煲 洗碗机 电风扇 空调 吸尘器 空气净化器 热水壶 充电宝 路由器 笔记本电脑 平板电脑 智能手表 耳机 音箱 投影仪 手电筒 雨伞 钥匙扣 保温杯 开瓶器 指甲油 口罩 消毒液 洗手液 纸巾 湿纸巾 棉签 创可贴 体温计 指南针 计算器
-
         🍬 童年回忆: 弹珠 毽子 辣条 悠悠球 陀螺 俄罗斯方块 魂斗罗 超级玛丽 大头贴 磁带 随身听 泡泡糖 东南西北 躲猫猫 老鹰捉小鸡 翻花绳 小霸王 街机 舒克贝塔 黑猫警长 葫芦娃 灌篮高手 七龙珠 名侦探柯南 机器猫 哆啦A梦 圣斗士 数码宝贝 宠物小精灵 铁臂阿童木 蜡笔小新 樱桃小丸子 喜羊羊 虹猫蓝兔 奇变偶不变 阳光体育 广播体操 眼保健操 红领巾 三好学生
-
         🍕 美食大赏: 火锅 螺蛳粉 汉堡包 小笼包 珍珠奶茶 榴莲 北京烤鸭 马卡龙 臭豆腐 冰糖葫芦 宫保鸡丁 鱼香肉丝 麻婆豆腐 红烧肉 酸菜鱼 糖醋里脊 地三鲜 小龙虾 羊肉串 串串香 煎饼果子 鸡蛋灌饼 肠粉 热干面 刀削面 兰州拉面 炸酱面 螺蛳粉 酸辣粉 过桥米线 披萨 寿司 刺身 牛排 意面 咖喱饭 提拉米苏 芝士蛋糕 甜甜圈 蛋挞 牛角面包 冰淇淋 巧克力 爆米花 薯条
     </script>
 
     <script>
-        let gameData = {};
-        let currentPool = [];
+        let gameData = {}; let currentPool = []; let gameHistory = [];
         let score = 0, skip = 0, timeLeft = 0, totalTime = 0, timer = null;
+        let currentWord = ""; let isProcessingAction = false; let audioCtx = null;
 
-        // 解析纯文本配置
+        function playBeep(freq, duration) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.value = freq; gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        function requestPermissionAndStart() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission().then(() => startGame()).catch(() => startGame());
+            } else startGame();
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
         function parseVocabulary() {
             const raw = document.getElementById('vocabulary-data').innerText;
-            const lines = raw.split('\n');
-            lines.forEach(line => {
+            raw.split('\n').forEach(line => {
                 if (line.includes(':')) {
                     const parts = line.split(':');
                     const category = parts[0].trim();
-                    const words = parts[1].trim().split(/\s+/); // 用空格、换行、制表符分隔
-                    if (category && words.length > 0) {
-                        gameData[category] = words;
-                    }
+                    const words = parts[1].trim().split(/\s+/);
+                    if (category && words.length > 0) gameData[category] = words;
                 }
             });
-            
             const select = document.getElementById('category-select');
             for (let cat in gameData) {
-                let opt = document.createElement('option');
-                opt.value = cat; opt.innerText = cat;
-                select.appendChild(opt);
+                let opt = document.createElement('option'); opt.value = cat; opt.innerText = cat; select.appendChild(opt);
             }
         }
 
@@ -162,45 +116,46 @@
             totalTime = parseInt(document.getElementById('time-select').value);
             timeLeft = totalTime;
             currentPool = [...gameData[cat]].sort(() => Math.random() - 0.5);
-            score = 0; skip = 0;
-
+            score = 0; skip = 0; gameHistory = [];
             switchScreen('game-screen');
-            
-            // 3秒准备倒计时
-            let count = 3;
-            document.getElementById('word-display').innerText = count;
+            let count = 3; document.getElementById('word-display').innerText = count;
             let cd = setInterval(() => {
                 count--;
-                if(count > 0) {
-                    document.getElementById('word-display').innerText = count;
-                } else {
-                    clearInterval(cd);
-                    nextWord();
-                    startTimer();
-                }
+                if(count > 0) { playBeep(800, 0.1); document.getElementById('word-display').innerText = count; }
+                else { clearInterval(cd); playBeep(1200, 0.3); nextWord(); startTimer(); window.addEventListener('deviceorientation', handleMotion); }
             }, 800);
+            try { document.documentElement.requestFullscreen(); } catch(e){}
+        }
 
-            try { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } catch(e){}
+        function handleMotion(event) {
+            if (isProcessingAction || timeLeft <= 0) return;
+            const g = event.gamma; 
+            if (g < -65) handleResult(true);
+            else if (g > 65) handleResult(false);
         }
 
         function nextWord() {
             if (currentPool.length === 0) return endGame();
-            document.getElementById('word-display').innerText = currentPool.pop();
+            currentWord = currentPool.pop();
+            document.getElementById('word-display').innerText = currentWord;
         }
 
         function handleResult(isOk) {
-            if (timeLeft <= 0) return;
+            if (isProcessingAction || timeLeft <= 0) return;
+            isProcessingAction = true;
+            gameHistory.push({ word: currentWord, status: isOk ? 'ok' : 'skip' });
             isOk ? score++ : skip++;
             triggerFlash(isOk ? 'flash-success' : 'flash-danger');
-            if (navigator.vibrate) navigator.vibrate(50);
+            playBeep(isOk ? 1000 : 400, 0.2);
+            if (navigator.vibrate) navigator.vibrate(80);
             nextWord();
+            setTimeout(() => isProcessingAction = false, 1200);
         }
 
         function triggerFlash(cls) {
             const s = document.getElementById('game-screen');
             s.classList.remove('flash-success', 'flash-danger');
-            void s.offsetWidth; 
-            s.classList.add(cls);
+            void s.offsetWidth; s.classList.add(cls);
         }
 
         function startTimer() {
@@ -208,24 +163,36 @@
             timer = setInterval(() => {
                 timeLeft--;
                 bar.style.width = (timeLeft / totalTime * 100) + "%";
-                if (timeLeft <= 10) bar.style.background = "var(--danger)";
+                if (timeLeft <= 10 && timeLeft > 0) { bar.style.background = "var(--danger)"; playBeep(600, 0.05); }
                 if (timeLeft <= 0) endGame();
             }, 1000);
         }
 
         function endGame() {
             clearInterval(timer);
+            window.removeEventListener('deviceorientation', handleMotion);
+            
+            // 修正后的逻辑：只记录“时间到”时显示在屏幕上的那个词
+            if (currentWord && !gameHistory.some(h => h.word === currentWord)) {
+                gameHistory.push({ word: currentWord, status: 'none' });
+            }
+
             document.getElementById('final-score').innerText = score;
             document.getElementById('stats-detail').innerText = `正确: ${score} | 跳过: ${skip}`;
+            const listEl = document.getElementById('history-list'); listEl.innerHTML = "";
+            gameHistory.forEach(item => {
+                const div = document.createElement('div'); div.className = "history-item";
+                let s = item.status === 'ok' ? '<span class="status-ok">✔</span>' : (item.status === 'skip' ? '<span class="status-skip">✘</span>' : '<span class="status-none">- 未猜出</span>');
+                div.innerHTML = `<span class="item-word">${item.word}</span>${s}`;
+                listEl.appendChild(div);
+            });
             switchScreen('result-screen');
-            if (document.fullscreenElement) document.exitFullscreen();
         }
 
         function switchScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
         }
-
         window.onload = parseVocabulary;
     </script>
 </body>
