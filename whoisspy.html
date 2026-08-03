@@ -203,6 +203,7 @@
     </div>
 </div>
 
+<script src="./shared_word_bank.js"></script>
 <script>
 // --- 核心逻辑 ---
 
@@ -216,29 +217,7 @@ const state = {
     stVisible: false
 };
 
-const rawLib = {
-    "日常生活": `秋裤|棉裤\n纸巾|湿巾\n牙刷|牙签\n保安|保镖\n镜子|玻璃\n手电筒|闪光灯\n唇膏|口红\n枕头|抱枕\n首富|富豪\n公交|地铁\n雨伞|雨衣\n闹钟|手表\n钥匙|门卡\n胶水|胶带\n花瓶|盆栽\n电扇|空调\n电梯|楼梯\n袜子|手套\n钢笔|圆珠笔\n抹布|毛巾\n被子|毯子\n拖把|扫帚\n梳子|刷子\n信封|明信片`,
-    
-    "美食佳肴": `包子|水饺\n汉堡|肉夹馍\n牛奶|豆浆\n葡萄|提子\n菠萝|凤梨\n火锅|冒菜\n烧烤|油炸\n咖啡|拿铁\n酸菜鱼|水煮鱼\n牛肉面|拉面\n馒头|包子\n拿铁|卡布奇诺\n汉堡|薯条\n西瓜|甜瓜\n荔枝|龙眼\n螺蛳粉|酸辣粉\n鸭脖|鸡爪\n烤肉|炸鸡\n披萨|意面\n奶茶|果汁\n龙虾|螃蟹\n韭菜|芹菜\n香蕉|芭蕉\n饼干|薯片\n红烧肉|锅包肉\n冰淇淋|圣代\n麻辣烫|麻辣拌\n米线|粉丝\n寿司|饭团\n巧克力|棒棒糖\n面条|馄饨`,
-    
-    "数码科技": `微信|QQ\n键盘|鼠标\n外卖|快递\n单反|微单\n充电宝|电池\n耳机|音响\nWIFI|热点\n抖音|快手\n淘宝|京东\n百度|谷歌\n安卓|苹果\n华为|小米\n蓝牙|显卡\n手办|盲盒\n平板|电脑\n投影仪|电视机\n相机|手机\n充电宝|适配器\n哔哩哔哩|小红书\n王者荣耀|和平精英\n固态硬盘|机械硬盘\n中国移动|中国联通`,
-    
-    "影视娱乐": `甄嬛传|如懿传\n成龙|李小龙\n周杰伦|王力宏\n快乐大本营|天天向上\n奥特曼|蜘蛛侠\n哈利波特|指环王\n周杰伦|陈奕迅\n成龙|李连杰\n王菲|那英\n选秀|晚会\n片酬|票房\n初恋|前任\n粉丝|水军\n若曦|晴川\n董永|许仙\n孟非|乐嘉\n郭德纲|于谦\n谢娜|李湘\n战狼|红海行动\n泰坦尼克|阿凡达\n流浪地球|三体\n西游降魔|大话西游\n卧虎藏龙|英雄`,
-    
-    "童年回忆": `班主任|教导主任\n暑假|寒假\n作业|考试\n铅笔|圆珠笔\n辣条|干脆面\n黑猫警长|葫芦娃\n皮卡丘|喷火龙\n大风车|动画城\n冰棍|雪糕\n孙悟空|哪吒\n魂斗罗|超级玛丽\n陀螺|溜溜球\n风筝|秋千\n西游记|封神榜\n跳绳|踢毽子`,
-    
-    "职场风云": `钉钉|飞书\n加班|团建\n老板|客户\n周报|总结\n面试|离职\n奖金|提成\n名片|工牌\n公章|签字\n辞职|跳槽\n入职|试用`,
-    
-    "运动竞技": `足球|篮球\n跳水|游泳\n乒乓球|羽毛球\n梅西|C罗\n詹姆斯|科比\n世界杯|奥运会\n健身|跑步\n深蹲|俯卧撑\n裁判|教练`,
-    
-    "大好河山": `故宫|长城\n外滩|东方明珠\n杭州|苏州\n西藏|新疆\n泰山|华山\n巴黎|伦敦\n洱海|滇池\n四川|重庆`,
-    
-    "动物世界": `哈士奇|萨摩耶\n企鹅|熊猫\n大象|鲸鱼\n老虎|狮子\n苍蝇|蚊子\n蝴蝶|蜻蜓\n蚂蚁|蜜蜂\n眼镜蛇|蜥蜴`,
-    
-    "文学经典": `成语|诗词\n三国演义|水浒传\n李白|杜甫\n论语|孟子\n小说|散文\n武侠|言情`,
-    
-    "自然科学": `地震|海啸\n太阳|月亮\n氧气|氮气\n沙漠|雨林\n重力|摩擦力\n电流|电压\n进化|变异`
-};
+const sharedWordBank = window.PARTY_GAME_SHARED_WORD_BANK || {};
 
 // 1. 初始化 (改为页面加载完成后执行，防止找不到元素)
 window.onload = function() {
@@ -252,7 +231,7 @@ window.onload = function() {
 function init() {
     const sel = document.getElementById('topic-select');
     if(!sel) return; // 容错
-    for (let k in rawLib) {
+    for (let k in sharedWordBank) {
         let opt = document.createElement('option');
         opt.value = k;
         opt.innerText = k;
@@ -337,10 +316,11 @@ function startGame() {
     if (civ < 1) { alert("平民人数不足！"); return; }
 
     const topic = document.getElementById('topic-select').value;
-    const lines = rawLib[topic].split('\n');
-    const pair = lines[Math.floor(Math.random() * lines.length)].split('|');
-    const wordCiv = pair[0];
-    const wordUnd = pair[1];
+    const entries = sharedWordBank[topic];
+    if (!entries || entries.length === 0) { alert("词库加载失败"); return; }
+    const pair = entries[Math.floor(Math.random() * entries.length)];
+    const wordCiv = pair.left;
+    const wordUnd = pair.right;
 
     let roles = [];
     for(let i=0; i<civ; i++) roles.push({ type: 'civ', word: wordCiv });

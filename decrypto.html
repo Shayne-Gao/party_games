@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>截码战 · 极简发牌版</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="./decrypto_word_bank.js"></script>
+    <style>
+        :root {
+            --bg: #09110e;
+            --panel: rgba(12, 23, 19, 0.88);
+            --panel-strong: #0f1915;
+            --line: rgba(133, 164, 150, 0.18);
+            --line-strong: rgba(218, 184, 114, 0.34);
+            --text: #eef4ef;
+            --muted: #9faf9f;
+            --accent: #d8b872;
+            --accent-soft: rgba(216, 184, 114, 0.14);
+            --green: #2d8f6f;
+            --blue: #3a6bd0;
+            --danger: #b55151;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+            --radius: 22px;
+            --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            --font-title: "Arial Black", "Helvetica Neue", "PingFang SC", sans-serif;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            font-family: var(--font-ui);
+            background:
+                radial-gradient(circle at top right, rgba(47, 89, 73, 0.28), transparent 26%),
+                radial-gradient(circle at bottom left, rgba(216, 184, 114, 0.12), transparent 30%),
+                linear-gradient(180deg, #0b1310 0%, #07100c 100%);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.65), transparent);
+        }
+
+        .shell {
+            width: min(1080px, 100%);
+            margin: 0 auto;
+            padding: 24px 16px 40px;
+        }
+
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .hero-title {
+            margin: 0;
+            font-family: var(--font-title);
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            line-height: 0.95;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero-subtitle {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            max-width: 620px;
+            line-height: 1.55;
+        }
+
+        .return-link {
+            color: var(--accent);
+            text-decoration: none;
+            border: 1px solid var(--line-strong);
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            white-space: nowrap;
+            background: rgba(15, 25, 21, 0.6);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 16px;
+        }
+
+        .panel {
+            position: relative;
+            overflow: hidden;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+        }
+
+        .panel::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: inherit;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .panel-body {
+            position: relative;
+            z-index: 1;
+            padding: 18px;
+        }
+
+        .section-title {
+            margin: 0 0 14px;
+            font-size: 0.94rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .stack { display: flex; flex-direction: column; gap: 12px; }
+        .row { display: flex; gap: 12px; }
+        .row > * { flex: 1; }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        input, select, button {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            font: inherit;
+        }
+
+        input, select {
+            background: rgba(7, 14, 11, 0.92);
+            color: var(--text);
+            padding: 13px 14px;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--line-strong);
+            box-shadow: 0 0 0 3px rgba(216, 184, 114, 0.12);
+        }
+
+        button {
+            cursor: pointer;
+            padding: 13px 16px;
+            color: var(--text);
+            background: var(--panel-strong);
+            transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+        }
+
+        button:hover { transform: translateY(-1px); border-color: var(--line-strong); }
+        button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+        .btn-accent {
+            background: linear-gradient(180deg, rgba(216, 184, 114, 0.18), rgba(216, 184, 114, 0.08));
+            border-color: var(--line-strong);
+        }
+
+        .btn-green {
+            background: linear-gradient(180deg, rgba(45, 143, 111, 0.3), rgba(45, 143, 111, 0.15));
+            border-color: rgba(45, 143, 111, 0.55);
+        }
+
+        .btn-blue {
+            background: linear-gradient(180deg, rgba(58, 107, 208, 0.28), rgba(58, 107, 208, 0.14));
+            border-color: rgba(97, 139, 229, 0.42);
+        }
+
+        .btn-danger {
+            background: linear-gradient(180deg, rgba(181, 81, 81, 0.28), rgba(181, 81, 81, 0.14));
+            border-color: rgba(181, 81, 81, 0.45);
+        }
+
+        .room-meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .stat {
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--line);
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.76rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.18rem;
+            font-weight: 700;
+        }
+
+        .hint {
+            font-size: 0.84rem;
+            line-height: 1.55;
+            color: var(--muted);
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.18);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--line);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 10px rgba(216, 184, 114, 0.8);
+        }
+
+        .teams {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .team-card {
+            padding: 14px;
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .team-card.is-self {
+            border-color: var(--line-strong);
+            background: linear-gradient(180deg, rgba(216, 184, 114, 0.11), rgba(216, 184, 114, 0.04));
+        }
+
+        .team-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .team-name {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .team-pill {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            border: 1px solid var(--line);
+            color: var(--muted);
+        }
+
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .word-chip {
+            min-height: 66px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 10px;
+            font-weight: 700;
+            font-size: 1.02rem;
+            letter-spacing: 0.02em;
+        }
+
+        .word-chip.is-hidden {
+            color: var(--muted);
+            border-style: dashed;
+            font-size: 0.86rem;
+            font-weight: 500;
+        }
+
+        .player-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .player-tag {
+            padding: 9px 11px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+            font-size: 0.83rem;
+        }
+
+        .code-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .code-display {
+            min-height: 124px;
+            border-radius: 22px;
+            border: 1px solid var(--line-strong);
+            background:
+                linear-gradient(180deg, rgba(216, 184, 114, 0.13), rgba(216, 184, 114, 0.05)),
+                rgba(0, 0, 0, 0.26);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 18px;
+        }
+
+        .code-placeholder {
+            font-size: 0.92rem;
+            color: var(--muted);
+            line-height: 1.7;
+            max-width: 260px;
+        }
+
+        .code-value {
+            font-family: var(--font-title);
+            font-size: clamp(2.5rem, 8vw, 4.2rem);
+            letter-spacing: 0.22em;
+            text-indent: 0.22em;
+            line-height: 1;
+        }
+
+        .code-value.is-masked {
+            letter-spacing: 0.28em;
+            text-indent: 0.28em;
+            color: rgba(238, 244, 239, 0.4);
+        }
+
+        .code-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .footer-note {
+            margin-top: 16px;
+            font-size: 0.78rem;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 860px) {
+            .grid { grid-template-columns: 1fr; }
+            .hero { flex-direction: column; align-items: stretch; }
+        }
+
+        @media (max-width: 560px) {
+            .shell { padding: 16px 12px 28px; }
+            .room-meta, .teams, .row, .code-actions { grid-template-columns: 1fr; display: grid; }
+            .word-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <div class="hero">
+            <div>
+                <h1 class="hero-title">DECRYPTO<br>截码战</h1>
+                <div class="hero-subtitle">
+                    极简发牌版。网页只负责建房、分组、发固定关键词，以及在本机抽取并锁定本轮密码。讨论、猜测和胜负判断全部在线下进行。
+                </div>
+            </div>
+            <a class="return-link" href="./index.html">返回游戏目录</a>
+        </div>
+
+        <div class="grid">
+            <section class="panel">
+                <div class="panel-body">
+                    <div class="section-title">房间入口</div>
+                    <div class="stack">
+                        <div class="row">
+                            <div>
+                                <label for="player-name">你的昵称</label>
+                                <input id="player-name" type="text" maxlength="16" placeholder="例如：Shayne">
+                            </div>
+                            <div>
+                                <label for="team-select">加入队伍</label>
+                                <select id="team-select">
+                                    <option value="A">A 队</option>
+                                    <option value="B">B 队</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div>
+                                <label for="room-input">房间码</label>
+                                <input id="room-input" type="text" maxlength="12" placeholder="例如：DC8392">
+                            </div>
+                            <div>
+                                <label for="share-link">分享链接</label>
+                                <input id="share-link" type="text" readonly placeholder="创建房间后自动生成">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <button id="create-btn" class="btn-accent">创建房间并成为房主</button>
+                            <button id="join-btn" class="btn-green">加入已有房间</button>
+                        </div>
+                    </div>
+
+                    <div class="footer-note">
+                        建议玩法：房主建房并分享链接，所有玩家先分到 A/B 两队。房主发词后，线下约定本轮谁是加密者；只有那个人在自己的手机上点击“抽取本轮密码”。
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-body">
+                    <div class="section-title">房间状态</div>
+                    <div class="room-meta">
+                        <div class="stat">
+                            <div class="stat-label">房间码</div>
+                            <div class="stat-value" id="meta-room">未连接</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">阶段</div>
+                            <div class="stat-value" id="meta-phase">等待中</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">轮次</div>
+                            <div class="stat-value" id="meta-round">-</div>
+                        </div>
+                    </div>
+
+                    <div class="status-bar">
+                        <div class="status-badge"><span class="status-dot"></span><span id="status-text">尚未进入房间</span></div>
+                        <div class="status-badge" id="identity-badge">未分配队伍</div>
+                    </div>
+
+                    <div class="section-title">玩家分组</div>
+                    <div class="teams">
+                        <div class="team-card" id="team-card-A">
+                            <div class="team-head">
+                                <div class="team-name">A 队</div>
+                                <div class="team-pill" id="count-A">0 人</div>
+                            </div>
+                            <div class="player-list" id="players-A"></div>
+                        </div>
+                        <div class="team-card" id="team-card-B">
+                            <div class="team-head">
+                                <div class="team-name">B 队</div>
+                                <div class="team-pill" id="count-B">0 人</div>
+                            </div>
+                            <div class="player-list" id="players-B"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="grid" style="margin-top:16px;">
+            <section class="panel">
+                <div class="panel-body">
+                    <div class="section-title">队伍词板</div>
+                    <div class="hint" id="word-hint">进入房间并完成发词后，你只会看到自己队伍的 4 个固定关键词。</div>
+                    <div class="teams" style="margin-top:14px;">
+                        <div class="team-card" id="words-card-A">
+                            <div class="team-head">
+                                <div class="team-name">A 队关键词</div>
+                                <div class="team-pill">仅 A 队可见</div>
+                            </div>
+                            <div class="word-grid" id="words-A"></div>
+                        </div>
+                        <div class="team-card" id="words-card-B">
+                            <div class="team-head">
+                                <div class="team-name">B 队关键词</div>
+                                <div class="team-pill">仅 B 队可见</div>
+                            </div>
+                            <div class="word-grid" id="words-B"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-body">
+                    <div class="section-title">本机密码抽取</div>
+                    <div class="code-panel">
+                        <div class="code-display" id="code-display">
+                            <div class="code-placeholder" id="code-message">
+                                当前设备还没有抽取本轮密码。线下约定谁是加密者后，由他在自己的手机上点击抽取按钮。
+                            </div>
+                        </div>
+                        <div class="code-actions">
+                            <button id="draw-code-btn" class="btn-accent">抽取本轮密码</button>
+                            <button id="toggle-code-btn">隐藏 / 显示</button>
+                        </div>
+                        <div class="row">
+                            <button id="copy-room-btn" class="btn-blue">复制房间链接</button>
+                            <button id="clear-code-btn" class="btn-danger">清空本机密码缓存</button>
+                        </div>
+                        <div class="footer-note">
+                            本轮密码只保存在当前设备的 <code>localStorage</code> 里，不会同步给房间内其他玩家。房主进入下一轮后，本机才允许重新抽取密码。
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="panel" style="margin-top:16px;">
+            <div class="panel-body">
+                <div class="section-title">房主控制台</div>
+                <div class="row">
+                    <button id="start-btn" class="btn-green">开局发两队关键词</button>
+                    <button id="next-round-btn" class="btn-blue">进入下一轮</button>
+                    <button id="restart-btn" class="btn-danger">重开整局并重发词</button>
+                </div>
+                <div class="footer-note" id="host-note">
+                    当前设备不是房主。只有房主可以发词、切轮次和重开整局。
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const STORAGE_PROFILE_PREFIX = "decrypto-profile:";
+        const STORAGE_CODE_PREFIX = "decrypto-code:";
+        const EMPTY_WORD_CELLS = 4;
+
+        const state = {
+            isHost: false,
+            peer: null,
+            roomCode: "",
+            hostPeerId: "",
+            selfPeerId: "",
+            connection: null,
+            connections: new Map(),
+            phase: "lobby",
+            round: 1,
+            sessionId: "",
+            players: [],
+            teamWords: { A: [], B: [] },
+            self: { name: "", team: "A" },
+            codeVisible: true
+        };
+
+        const els = {
+            playerName: document.getElementById("player-name"),
+            teamSelect: document.getElementById("team-select"),
+            roomInput: document.getElementById("room-input"),
+            shareLink: document.getElementById("share-link"),
+            createBtn: document.getElementById("create-btn"),
+            joinBtn: document.getElementById("join-btn"),
+            statusText: document.getElementById("status-text"),
+            identityBadge: document.getElementById("identity-badge"),
+            metaRoom: document.getElementById("meta-room"),
+            metaPhase: document.getElementById("meta-phase"),
+            metaRound: document.getElementById("meta-round"),
+            playersA: document.getElementById("players-A"),
+            playersB: document.getElementById("players-B"),
+            countA: document.getElementById("count-A"),
+            countB: document.getElementById("count-B"),
+            teamCardA: document.getElementById("team-card-A"),
+            teamCardB: document.getElementById("team-card-B"),
+            wordsA: document.getElementById("words-A"),
+            wordsB: document.getElementById("words-B"),
+            wordHint: document.getElementById("word-hint"),
+            codeDisplay: document.getElementById("code-display"),
+            codeMessage: document.getElementById("code-message"),
+            drawCodeBtn: document.getElementById("draw-code-btn"),
+            toggleCodeBtn: document.getElementById("toggle-code-btn"),
+            copyRoomBtn: document.getElementById("copy-room-btn"),
+            clearCodeBtn: document.getElementById("clear-code-btn"),
+            startBtn: document.getElementById("start-btn"),
+            nextRoundBtn: document.getElementById("next-round-btn"),
+            restartBtn: document.getElementById("restart-btn"),
+            hostNote: document.getElementById("host-note")
+        };
+
+        init();
+
+        function init() {
+            hydrateRoomFromUrl();
+            bindEvents();
+            renderPlayers();
+            renderWords();
+            renderStatus();
+            renderLocalCode();
+        }
+
+        function bindEvents() {
+            els.createBtn.addEventListener("click", () => createRoom());
+            els.joinBtn.addEventListener("click", () => joinRoom());
+            els.copyRoomBtn.addEventListener("click", copyShareLink);
+            els.drawCodeBtn.addEventListener("click", drawLocalCode);
+            els.toggleCodeBtn.addEventListener("click", toggleCodeVisibility);
+            els.clearCodeBtn.addEventListener("click", clearLocalCode);
+            els.startBtn.addEventListener("click", startGame);
+            els.nextRoundBtn.addEventListener("click", nextRound);
+            els.restartBtn.addEventListener("click", restartGame);
+        }
+
+        function hydrateRoomFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const room = sanitizeRoomCode(params.get("room") || "");
+            if (room) {
+                els.roomInput.value = room;
+                loadProfile(room);
+            }
+        }
+
+        function syncUrl() {
+            if (!state.roomCode) return;
+            const url = new URL(window.location.href);
+            url.searchParams.set("room", state.roomCode);
+            history.replaceState({}, "", url.toString());
+            els.shareLink.value = url.toString();
+        }
+
+        function loadProfile(roomCode) {
+            const raw = localStorage.getItem(`${STORAGE_PROFILE_PREFIX}${roomCode}`);
+            if (!raw) return;
+            try {
+                const profile = JSON.parse(raw);
+                els.playerName.value = profile.name || "";
+                els.teamSelect.value = profile.team || "A";
+            } catch (error) {
+                console.warn("profile parse failed", error);
+            }
+        }
+
+        function persistProfile() {
+            if (!state.roomCode) return;
+            const payload = { name: state.self.name, team: state.self.team };
+            localStorage.setItem(`${STORAGE_PROFILE_PREFIX}${state.roomCode}`, JSON.stringify(payload));
+        }
+
+        function createRoom() {
+            if (state.peer) return;
+            const payload = collectIdentity();
+            if (!payload) return;
+
+            const roomCode = sanitizeRoomCode(els.roomInput.value) || generateRoomCode();
+            els.roomInput.value = roomCode;
+
+            state.isHost = true;
+            state.roomCode = roomCode;
+            state.hostPeerId = hostIdFromRoom(roomCode);
+            state.self = payload;
+            state.sessionId = createSessionId();
+
+            syncUrl();
+            persistProfile();
+            setStatus("正在创建房间...");
+
+            state.peer = new Peer(state.hostPeerId);
+            state.peer.on("open", (peerId) => {
+                state.selfPeerId = peerId;
+                upsertPlayer({ peerId, name: state.self.name, team: state.self.team });
+                setStatus("房间已创建，等待其他玩家加入");
+                renderAll();
+            });
+            state.peer.on("connection", handleIncomingConnection);
+            state.peer.on("error", (error) => handlePeerError(error));
+        }
+
+        function joinRoom() {
+            if (state.peer) return;
+            const payload = collectIdentity();
+            if (!payload) return;
+
+            const roomCode = sanitizeRoomCode(els.roomInput.value);
+            if (!roomCode) {
+                alert("请输入房间码");
+                return;
+            }
+
+            state.isHost = false;
+            state.roomCode = roomCode;
+            state.hostPeerId = hostIdFromRoom(roomCode);
+            state.self = payload;
+
+            syncUrl();
+            persistProfile();
+            setStatus("正在连接房主...");
+
+            state.peer = new Peer();
+            state.peer.on("open", (peerId) => {
+                state.selfPeerId = peerId;
+                state.connection = state.peer.connect(state.hostPeerId, { reliable: true });
+                attachClientConnection(state.connection);
+            });
+            state.peer.on("error", (error) => handlePeerError(error));
+        }
+
+        function attachClientConnection(conn) {
+            conn.on("open", () => {
+                conn.send({ type: "join", payload: { name: state.self.name, team: state.self.team } });
+                setStatus("已连接房间，等待房主同步状态");
+            });
+            conn.on("data", (data) => {
+                if (data.type === "state_sync") {
+                    applyRoomState(data.payload);
+                }
+            });
+            conn.on("close", () => {
+                setStatus("与房主的连接已断开");
+            });
+        }
+
+        function handleIncomingConnection(conn) {
+            state.connections.set(conn.peer, conn);
+            conn.on("data", (data) => {
+                if (data.type === "join") {
+                    upsertPlayer({ peerId: conn.peer, name: data.payload.name, team: data.payload.team });
+                    broadcastRoomState();
+                }
+            });
+            conn.on("close", () => {
+                state.connections.delete(conn.peer);
+                state.players = state.players.filter((player) => player.peerId !== conn.peer);
+                broadcastRoomState();
+                renderAll();
+            });
+            conn.on("error", (error) => {
+                console.warn("peer connection error", error);
+            });
+        }
+
+        function handlePeerError(error) {
+            console.error(error);
+            if (error.type === "peer-unavailable") {
+                alert("房间不存在，或者房主尚未上线。");
+            } else if (error.type === "unavailable-id") {
+                alert("这个房间码已被占用，请换一个房间码。");
+            } else {
+                alert(`连接异常：${error.type || error.message}`);
+            }
+            setStatus("连接异常，请重试");
+        }
+
+        function collectIdentity() {
+            const name = els.playerName.value.trim();
+            const team = els.teamSelect.value;
+            if (!name) {
+                alert("请先输入昵称");
+                return null;
+            }
+            return { name: name.slice(0, 16), team };
+        }
+
+        function hostIdFromRoom(roomCode) {
+            return `decrypto-room-${roomCode.toLowerCase()}`;
+        }
+
+        function sanitizeRoomCode(value) {
+            return (value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+        }
+
+        function generateRoomCode() {
+            const seed = Math.random().toString(36).slice(2, 6).toUpperCase();
+            return `DC${seed}`;
+        }
+
+        function createSessionId() {
+            return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+        }
+
+        function startGame() {
+            if (!state.isHost) return;
+            state.phase = "running";
+            state.round = 1;
+            state.sessionId = createSessionId();
+            state.teamWords = generateTeamWords();
+            broadcastRoomState();
+            renderAll();
+        }
+
+        function nextRound() {
+            if (!state.isHost || state.phase !== "running") return;
+            state.round += 1;
+            broadcastRoomState();
+            renderAll();
+        }
+
+        function restartGame() {
+            if (!state.isHost) return;
+            state.phase = "running";
+            state.round = 1;
+            state.sessionId = createSessionId();
+            state.teamWords = generateTeamWords();
+            broadcastRoomState();
+            renderAll();
+        }
+
+        function generateTeamWords() {
+            const pool = Array.isArray(window.DECRYPTO_WORD_BANK) ? [...window.DECRYPTO_WORD_BANK] : [];
+            if (pool.length < 8) throw new Error("关键词池不足，至少需要 8 个词");
+
+            shuffle(pool);
+            return {
+                A: pool.slice(0, 4),
+                B: pool.slice(4, 8)
+            };
+        }
+
+        function broadcastRoomState() {
+            const payload = roomStatePayload();
+            state.connections.forEach((conn) => {
+                if (conn.open) conn.send({ type: "state_sync", payload });
+            });
+        }
+
+        function roomStatePayload() {
+            return {
+                roomCode: state.roomCode,
+                phase: state.phase,
+                round: state.round,
+                sessionId: state.sessionId,
+                players: state.players,
+                teamWords: state.teamWords
+            };
+        }
+
+        function applyRoomState(payload) {
+            const roundChanged = state.round !== payload.round || state.sessionId !== payload.sessionId;
+            state.roomCode = payload.roomCode;
+            state.phase = payload.phase;
+            state.round = payload.round;
+            state.sessionId = payload.sessionId;
+            state.players = payload.players || [];
+            state.teamWords = payload.teamWords || { A: [], B: [] };
+            if (roundChanged) state.codeVisible = true;
+            syncUrl();
+            persistProfile();
+            setStatus(state.phase === "running" ? "房间运行中，可查看本队词板" : "已加入房间，等待房主发词");
+            renderAll();
+        }
+
+        function upsertPlayer(player) {
+            const index = state.players.findIndex((item) => item.peerId === player.peerId);
+            if (index >= 0) {
+                state.players[index] = player;
+            } else {
+                state.players.push(player);
+            }
+        }
+
+        function renderAll() {
+            renderStatus();
+            renderPlayers();
+            renderWords();
+            renderHostControls();
+            renderLocalCode();
+        }
+
+        function renderStatus() {
+            els.metaRoom.textContent = state.roomCode || "未连接";
+            els.metaPhase.textContent = state.phase === "running" ? "进行中" : "等待中";
+            els.metaRound.textContent = state.phase === "running" ? `第 ${state.round} 轮` : "-";
+
+            if (state.self.team === "A") {
+                els.teamCardA.classList.add("is-self");
+                els.teamCardB.classList.remove("is-self");
+            } else if (state.self.team === "B") {
+                els.teamCardB.classList.add("is-self");
+                els.teamCardA.classList.remove("is-self");
+            } else {
+                els.teamCardA.classList.remove("is-self");
+                els.teamCardB.classList.remove("is-self");
+            }
+
+            if (!state.roomCode) {
+                els.identityBadge.textContent = "未分配队伍";
+            } else {
+                els.identityBadge.textContent = `${state.isHost ? "房主" : "玩家"} · ${state.self.team || "-"} 队 · ${state.self.name || "未命名"}`;
+            }
+        }
+
+        function renderPlayers() {
+            const groups = { A: [], B: [] };
+            state.players.forEach((player) => {
+                if (groups[player.team]) groups[player.team].push(player);
+            });
+
+            els.playersA.innerHTML = renderPlayerTags(groups.A);
+            els.playersB.innerHTML = renderPlayerTags(groups.B);
+            els.countA.textContent = `${groups.A.length} 人`;
+            els.countB.textContent = `${groups.B.length} 人`;
+        }
+
+        function renderPlayerTags(players) {
+            if (!players.length) return '<div class="player-tag">暂无玩家</div>';
+            return players.map((player) => {
+                const isSelf = player.peerId === state.selfPeerId ? "（你）" : "";
+                return `<div class="player-tag">${escapeHtml(player.name)}${isSelf}</div>`;
+            }).join("");
+        }
+
+        function renderWords() {
+            renderWordPanel("A", els.wordsA);
+            renderWordPanel("B", els.wordsB);
+
+            if (state.phase !== "running") {
+                els.wordHint.textContent = "房主发词后，每个玩家只会看到自己队伍的 4 个固定关键词。";
+            } else {
+                els.wordHint.textContent = `当前是第 ${state.round} 轮。两队的固定关键词不会在轮次间变化，只有重开整局才会重新发词。`;
+            }
+        }
+
+        function renderWordPanel(team, container) {
+            const words = state.teamWords[team] || [];
+            const isSelfTeam = state.self.team === team;
+
+            if (!words.length) {
+                container.innerHTML = createEmptyWordCells("等待房主发词");
+                return;
+            }
+
+            if (!isSelfTeam) {
+                container.innerHTML = createEmptyWordCells("另一队私密词板");
+                return;
+            }
+
+            container.innerHTML = words.map((word) => `<div class="word-chip">${escapeHtml(word)}</div>`).join("");
+        }
+
+        function createEmptyWordCells(text) {
+            return Array.from({ length: EMPTY_WORD_CELLS }, () => `<div class="word-chip is-hidden">${text}</div>`).join("");
+        }
+
+        function renderHostControls() {
+            els.startBtn.disabled = !state.isHost;
+            els.nextRoundBtn.disabled = !state.isHost || state.phase !== "running";
+            els.restartBtn.disabled = !state.isHost;
+
+            if (!state.isHost) {
+                els.hostNote.textContent = "当前设备不是房主。只有房主可以发词、切轮次和重开整局。";
+            } else if (state.phase !== "running") {
+                els.hostNote.textContent = "房主开局后，会为 A / B 两队各发 4 个固定关键词。";
+            } else {
+                els.hostNote.textContent = `当前房间处于第 ${state.round} 轮。点击“进入下一轮”后，所有设备会解锁新的本轮密码抽取。`;
+            }
+        }
+
+        function renderLocalCode() {
+            const codeState = getLocalCodeState();
+            const canDraw = state.phase === "running" && !!state.roomCode && !!state.self.team && !!state.sessionId;
+            els.drawCodeBtn.disabled = !canDraw;
+            els.toggleCodeBtn.disabled = !codeState;
+            els.clearCodeBtn.disabled = !codeState;
+
+            if (!canDraw) {
+                els.codeMessage.className = "code-placeholder";
+                els.codeMessage.textContent = "房主开局并发词后，当前队伍的加密者才能在自己的手机上抽取本轮密码。";
+                els.codeDisplay.innerHTML = `<div class="code-placeholder" id="code-message">${escapeHtml(els.codeMessage.textContent)}</div>`;
+                return;
+            }
+
+            if (!codeState) {
+                els.codeDisplay.innerHTML = `
+                    <div class="code-placeholder">
+                        当前是第 ${state.round} 轮，密码尚未抽取。线下约定的加密者请点击下方按钮，在本机锁定本轮密码。
+                    </div>
+                `;
+                return;
+            }
+
+            const masked = !state.codeVisible;
+            const content = masked ? "• • •" : codeState.code;
+            const cls = masked ? "code-value is-masked" : "code-value";
+            els.codeDisplay.innerHTML = `<div class="${cls}">${escapeHtml(content)}</div>`;
+        }
+
+        function drawLocalCode() {
+            if (state.phase !== "running") return;
+            const existing = getLocalCodeState();
+            if (existing) {
+                state.codeVisible = true;
+                renderLocalCode();
+                return;
+            }
+
+            const code = generateRandomCode();
+            const key = currentCodeStorageKey();
+            localStorage.setItem(key, JSON.stringify({ code, round: state.round, sessionId: state.sessionId }));
+            state.codeVisible = true;
+            renderLocalCode();
+        }
+
+        function toggleCodeVisibility() {
+            if (!getLocalCodeState()) return;
+            state.codeVisible = !state.codeVisible;
+            renderLocalCode();
+        }
+
+        function clearLocalCode() {
+            const key = currentCodeStorageKey();
+            localStorage.removeItem(key);
+            state.codeVisible = true;
+            renderLocalCode();
+        }
+
+        function copyShareLink() {
+            const value = els.shareLink.value;
+            if (!value) {
+                alert("请先创建或加入房间");
+                return;
+            }
+            navigator.clipboard.writeText(value).then(() => {
+                setStatus("房间链接已复制");
+            }).catch(() => {
+                alert("复制失败，请手动复制链接");
+            });
+        }
+
+        function currentCodeStorageKey() {
+            return `${STORAGE_CODE_PREFIX}${state.roomCode}:${state.self.team}:${state.sessionId}:${state.round}`;
+        }
+
+        function getLocalCodeState() {
+            if (!state.roomCode || !state.self.team || !state.sessionId || state.phase !== "running") return null;
+            const raw = localStorage.getItem(currentCodeStorageKey());
+            if (!raw) return null;
+            try {
+                return JSON.parse(raw);
+            } catch (error) {
+                console.warn("code state parse failed", error);
+                return null;
+            }
+        }
+
+        function generateRandomCode() {
+            const digits = [1, 2, 3, 4];
+            shuffle(digits);
+            return digits.slice(0, 3).join("-");
+        }
+
+        function setStatus(text) {
+            els.statusText.textContent = text;
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+    </script>
+</body>
+</html>

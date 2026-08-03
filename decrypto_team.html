@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>截码战 · 队伍页</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="./decrypto_shared.js"></script>
+    <style>
+        :root {
+            --bg: #08110d;
+            --panel: rgba(11, 21, 17, 0.9);
+            --panel-soft: rgba(255, 255, 255, 0.035);
+            --line: rgba(139, 166, 154, 0.16);
+            --line-strong: rgba(214, 188, 122, 0.36);
+            --text: #eef4ef;
+            --muted: #9dada2;
+            --accent: #d6bc7a;
+            --green: #2f8c6a;
+            --blue: #3c6fe0;
+            --danger: #ba5d5d;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+            --radius: 22px;
+            --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            --font-title: "Arial Black", "Helvetica Neue", "PingFang SC", sans-serif;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            font-family: var(--font-ui);
+            background:
+                radial-gradient(circle at top right, rgba(38, 92, 74, 0.28), transparent 24%),
+                radial-gradient(circle at bottom left, rgba(214, 188, 122, 0.14), transparent 34%),
+                linear-gradient(180deg, #0a130f 0%, #070f0b 100%);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+            background-size: 26px 26px;
+            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.78), transparent);
+        }
+
+        .shell {
+            width: min(860px, 100%);
+            margin: 0 auto;
+            padding: 24px 16px 40px;
+        }
+
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .hero-title {
+            margin: 0;
+            font-family: var(--font-title);
+            font-size: clamp(2rem, 7vw, 3.2rem);
+            line-height: 0.95;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .hero-subtitle {
+            margin-top: 12px;
+            max-width: 620px;
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 0.92rem;
+        }
+
+        .return-link {
+            color: var(--accent);
+            text-decoration: none;
+            border: 1px solid var(--line-strong);
+            padding: 10px 14px;
+            border-radius: 999px;
+            white-space: nowrap;
+            background: rgba(15, 25, 21, 0.65);
+            height: fit-content;
+        }
+
+        .panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius);
+            border: 1px solid var(--line);
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+            margin-bottom: 16px;
+        }
+
+        .panel::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        .panel-body { position: relative; z-index: 1; padding: 18px; }
+        .section-title {
+            margin: 0 0 14px;
+            color: var(--accent);
+            font-size: 0.92rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        .row { display: flex; gap: 12px; }
+        .row > * { flex: 1; }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        input, select, button {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            font: inherit;
+        }
+
+        input, select {
+            padding: 13px 14px;
+            background: rgba(7, 14, 11, 0.92);
+            color: var(--text);
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--line-strong);
+            box-shadow: 0 0 0 3px rgba(214, 188, 122, 0.12);
+        }
+
+        button {
+            cursor: pointer;
+            padding: 13px 16px;
+            color: var(--text);
+            background: #121b17;
+            transition: transform 0.16s ease, border-color 0.16s ease;
+        }
+
+        button:hover { transform: translateY(-1px); border-color: var(--line-strong); }
+        button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+        .btn-accent { background: linear-gradient(180deg, rgba(214, 188, 122, 0.2), rgba(214, 188, 122, 0.08)); border-color: var(--line-strong); }
+        .btn-blue { background: linear-gradient(180deg, rgba(60, 111, 224, 0.26), rgba(60, 111, 224, 0.13)); border-color: rgba(98, 143, 233, 0.42); }
+        .btn-danger { background: linear-gradient(180deg, rgba(186, 93, 93, 0.26), rgba(186, 93, 93, 0.13)); border-color: rgba(186, 93, 93, 0.45); }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .stat {
+            padding: 14px;
+            border-radius: 16px;
+            background: var(--panel-soft);
+            border: 1px solid var(--line);
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.14rem;
+            font-weight: 700;
+        }
+
+        .status-strip {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(0, 0, 0, 0.18);
+            color: var(--muted);
+            font-size: 0.86rem;
+            line-height: 1.55;
+        }
+
+        .team-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .team-name {
+            font-size: 1.02rem;
+            font-weight: 700;
+        }
+
+        .team-pill {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            border: 1px solid var(--line);
+            color: var(--muted);
+        }
+
+        .player-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .player-tag {
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 0.82rem;
+        }
+
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .word-chip {
+            min-height: 76px;
+            padding: 10px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .word-chip.is-placeholder {
+            border-style: dashed;
+            color: var(--muted);
+            font-size: 0.84rem;
+            font-weight: 500;
+        }
+
+        .code-display {
+            min-height: 138px;
+            border-radius: 22px;
+            border: 1px solid var(--line-strong);
+            background:
+                linear-gradient(180deg, rgba(214, 188, 122, 0.14), rgba(214, 188, 122, 0.05)),
+                rgba(0, 0, 0, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 18px;
+        }
+
+        .code-placeholder {
+            max-width: 280px;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--muted);
+        }
+
+        .code-value {
+            font-family: var(--font-title);
+            font-size: clamp(2.6rem, 10vw, 4.6rem);
+            letter-spacing: 0.22em;
+            text-indent: 0.22em;
+        }
+
+        .code-value.is-masked {
+            color: rgba(238, 244, 239, 0.38);
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 700px) {
+            .hero { flex-direction: column; }
+            .row, .stats { display: grid; grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <div class="hero">
+            <div>
+                <h1 class="hero-title">TEAM VIEW<br>队伍页面</h1>
+                <div class="hero-subtitle">
+                    这个页面只展示本队的 4 个固定关键词，并在本机抽取本轮密码。谁是本轮加密者，由你们在线下决定；只有那个人点击抽取按钮即可。
+                </div>
+            </div>
+            <a class="return-link" href="./index.html">返回游戏目录</a>
+        </div>
+
+        <section class="panel">
+            <div class="panel-body">
+                <div class="section-title">加入房间</div>
+                <div class="row">
+                    <div>
+                        <label for="player-name">你的昵称</label>
+                        <input id="player-name" type="text" maxlength="16" placeholder="例如：A队-1号">
+                    </div>
+                    <div>
+                        <label for="room-input">房间码</label>
+                        <input id="room-input" type="text" maxlength="12" placeholder="例如：DC8392">
+                    </div>
+                </div>
+                <div class="row" style="margin-top:12px;">
+                    <div>
+                        <label for="team-select">队伍</label>
+                        <select id="team-select">
+                            <option value="A">A 队</option>
+                            <option value="B">B 队</option>
+                        </select>
+                    </div>
+                    <div style="align-self:flex-end;">
+                        <button id="join-btn" class="btn-accent">加入对应队伍</button>
+                    </div>
+                </div>
+                <div class="status-strip" id="status-text">先输入昵称并加入房间，随后等待主持人发放两队关键词。</div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-body">
+                <div class="section-title">当前状态</div>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label">房间码</div>
+                        <div class="stat-value" id="meta-room">未连接</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">我的队伍</div>
+                        <div class="stat-value" id="meta-team">未选择</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">轮次</div>
+                        <div class="stat-value" id="meta-round">-</div>
+                    </div>
+                </div>
+
+                <div class="team-head">
+                    <div class="team-name">本队成员</div>
+                    <div class="team-pill" id="player-count">0 人</div>
+                </div>
+                <div class="player-list" id="player-list"></div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-body">
+                <div class="section-title">本队关键词</div>
+                <div class="hint" id="word-hint">主持人发词后，这里会显示你所在队伍整局固定使用的 4 个关键词。</div>
+                <div class="word-grid" id="word-grid" style="margin-top:14px;"></div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-body">
+                <div class="section-title">本机密码</div>
+                <div class="code-display" id="code-display">
+                    <div class="code-placeholder">本轮密码还没有抽取。线下约定的加密者，请在自己的手机上点击下方按钮。</div>
+                </div>
+                <div class="row" style="margin-top:14px;">
+                    <button id="draw-btn" class="btn-accent">抽取本轮密码</button>
+                    <button id="toggle-btn" class="btn-blue">隐藏 / 显示</button>
+                    <button id="clear-btn" class="btn-danger">清空本机密码</button>
+                </div>
+                <div class="status-strip" id="code-note">
+                    本轮密码只保存在当前设备的 <code>localStorage</code> 里，不会同步给其他人。主持人进入下一轮后，本机才会允许重新抽取。
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const { sanitizeRoomCode, hostIdFromRoom, escapeHtml, generateRandomCode, loadProfile, saveProfile, readLocalCode, writeLocalCode, clearLocalCode } = window.DECRYPTO_SHARED;
+
+        const state = {
+            peer: null,
+            connection: null,
+            roomCode: "",
+            hostPeerId: "",
+            selfPeerId: "",
+            self: { name: "", team: "A" },
+            phase: "lobby",
+            round: 1,
+            sessionId: "",
+            players: [],
+            teamWords: { A: [], B: [] },
+            codeVisible: true
+        };
+
+        const els = {
+            playerName: document.getElementById("player-name"),
+            roomInput: document.getElementById("room-input"),
+            teamSelect: document.getElementById("team-select"),
+            joinBtn: document.getElementById("join-btn"),
+            statusText: document.getElementById("status-text"),
+            metaRoom: document.getElementById("meta-room"),
+            metaTeam: document.getElementById("meta-team"),
+            metaRound: document.getElementById("meta-round"),
+            playerCount: document.getElementById("player-count"),
+            playerList: document.getElementById("player-list"),
+            wordHint: document.getElementById("word-hint"),
+            wordGrid: document.getElementById("word-grid"),
+            codeDisplay: document.getElementById("code-display"),
+            drawBtn: document.getElementById("draw-btn"),
+            toggleBtn: document.getElementById("toggle-btn"),
+            clearBtn: document.getElementById("clear-btn")
+        };
+
+        init();
+
+        function init() {
+            const params = new URLSearchParams(window.location.search);
+            const room = sanitizeRoomCode(params.get("room") || "");
+            const team = (params.get("team") || "").toUpperCase();
+
+            if (room) {
+                els.roomInput.value = room;
+                const profile = loadProfile(room);
+                if (profile) els.playerName.value = profile.name || "";
+            }
+            if (team === "A" || team === "B") {
+                els.teamSelect.value = team;
+            }
+
+            els.joinBtn.addEventListener("click", joinRoom);
+            els.drawBtn.addEventListener("click", drawCode);
+            els.toggleBtn.addEventListener("click", toggleCode);
+            els.clearBtn.addEventListener("click", clearCode);
+
+            renderAll();
+        }
+
+        function joinRoom() {
+            if (state.peer) return;
+            const name = els.playerName.value.trim();
+            const roomCode = sanitizeRoomCode(els.roomInput.value);
+            const team = els.teamSelect.value;
+            if (!name) {
+                alert("请先输入昵称");
+                return;
+            }
+            if (!roomCode) {
+                alert("请输入房间码");
+                return;
+            }
+
+            state.self = { name: name.slice(0, 16), team };
+            state.roomCode = roomCode;
+            state.hostPeerId = hostIdFromRoom(roomCode);
+
+            saveProfile(roomCode, state.self);
+            syncUrl();
+            setStatus("正在连接主持人...");
+
+            state.peer = new Peer();
+            state.peer.on("open", (peerId) => {
+                state.selfPeerId = peerId;
+                state.connection = state.peer.connect(state.hostPeerId, { reliable: true });
+                attachConnection(state.connection);
+            });
+            state.peer.on("error", handlePeerError);
+        }
+
+        function attachConnection(conn) {
+            conn.on("open", () => {
+                conn.send({ type: "join", payload: { name: state.self.name, team: state.self.team } });
+                setStatus("已连接主持人，等待同步房间状态");
+            });
+            conn.on("data", (data) => {
+                if (data.type === "state_sync") {
+                    applyRoomState(data.payload);
+                }
+            });
+            conn.on("close", () => {
+                setStatus("与主持人的连接已断开");
+                renderAll();
+            });
+        }
+
+        function handlePeerError(error) {
+            console.error(error);
+            if (error.type === "peer-unavailable") {
+                alert("主持人房间不存在，或者主持人还没有上线。");
+            } else {
+                alert(`连接异常：${error.type || error.message}`);
+            }
+            setStatus("连接失败，请重试");
+        }
+
+        function applyRoomState(payload) {
+            const roundChanged = state.round !== payload.round || state.sessionId !== payload.sessionId;
+            state.phase = payload.phase;
+            state.round = payload.round;
+            state.sessionId = payload.sessionId;
+            state.players = payload.players || [];
+            state.teamWords = payload.teamWords || { A: [], B: [] };
+            if (roundChanged) state.codeVisible = true;
+            setStatus(state.phase === "running" ? "房间进行中，可查看本队词板和本轮密码" : "主持人还未发词，请稍候");
+            renderAll();
+        }
+
+        function drawCode() {
+            if (state.phase !== "running") return;
+            const existing = getCurrentLocalCode();
+            if (existing) {
+                state.codeVisible = true;
+                renderLocalCode();
+                return;
+            }
+            writeLocalCode(codeConfig(), {
+                code: generateRandomCode(),
+                round: state.round,
+                sessionId: state.sessionId
+            });
+            state.codeVisible = true;
+            renderLocalCode();
+        }
+
+        function toggleCode() {
+            if (!getCurrentLocalCode()) return;
+            state.codeVisible = !state.codeVisible;
+            renderLocalCode();
+        }
+
+        function clearCode() {
+            clearLocalCode(codeConfig());
+            state.codeVisible = true;
+            renderLocalCode();
+        }
+
+        function codeConfig() {
+            return {
+                roomCode: state.roomCode,
+                team: state.self.team,
+                sessionId: state.sessionId,
+                round: state.round
+            };
+        }
+
+        function getCurrentLocalCode() {
+            return readLocalCode(codeConfig());
+        }
+
+        function syncUrl() {
+            const url = new URL(window.location.href);
+            url.searchParams.set("room", state.roomCode);
+            url.searchParams.set("team", state.self.team);
+            history.replaceState({}, "", url.toString());
+        }
+
+        function renderAll() {
+            renderMeta();
+            renderPlayers();
+            renderWords();
+            renderLocalCode();
+        }
+
+        function renderMeta() {
+            els.metaRoom.textContent = state.roomCode || "未连接";
+            els.metaTeam.textContent = state.self.team ? `${state.self.team} 队` : "未选择";
+            els.metaRound.textContent = state.phase === "running" ? `第 ${state.round} 轮` : "-";
+        }
+
+        function renderPlayers() {
+            const members = state.players.filter((player) => player.team === state.self.team);
+            els.playerCount.textContent = `${members.length} 人`;
+            if (!members.length) {
+                els.playerList.innerHTML = '<div class="player-tag">暂无成员</div>';
+                return;
+            }
+            els.playerList.innerHTML = members.map((player) => {
+                const selfTag = player.peerId === state.selfPeerId ? "（你）" : "";
+                return `<div class="player-tag">${escapeHtml(player.name)}${selfTag}</div>`;
+            }).join("");
+        }
+
+        function renderWords() {
+            const words = state.teamWords[state.self.team] || [];
+            if (!words.length) {
+                els.wordGrid.innerHTML = Array.from({ length: 4 }, () => '<div class="word-chip is-placeholder">等待主持人发词</div>').join("");
+                els.wordHint.textContent = "主持人发词后，这里会显示你所在队伍整局固定使用的 4 个关键词。";
+                return;
+            }
+            els.wordGrid.innerHTML = words.map((word) => `<div class="word-chip">${escapeHtml(word)}</div>`).join("");
+            els.wordHint.textContent = `这是 ${state.self.team} 队整局固定使用的 4 个词。当前是第 ${state.round} 轮，轮次变化不会重发这些词。`;
+        }
+
+        function renderLocalCode() {
+            const canDraw = state.phase === "running" && state.sessionId && state.roomCode;
+            const localCode = getCurrentLocalCode();
+
+            els.drawBtn.disabled = !canDraw;
+            els.toggleBtn.disabled = !localCode;
+            els.clearBtn.disabled = !localCode;
+
+            if (!canDraw) {
+                els.codeDisplay.innerHTML = '<div class="code-placeholder">主持人发词后，线下约定的本轮加密者才能在自己的手机上抽取本轮密码。</div>';
+                return;
+            }
+
+            if (!localCode) {
+                els.codeDisplay.innerHTML = `<div class="code-placeholder">当前是第 ${state.round} 轮，本机还没有抽取密码。线下确认本轮加密者后，由他点击“抽取本轮密码”。</div>`;
+                return;
+            }
+
+            const masked = !state.codeVisible;
+            const content = masked ? "• • •" : localCode.code;
+            const cls = masked ? "code-value is-masked" : "code-value";
+            els.codeDisplay.innerHTML = `<div class="${cls}">${escapeHtml(content)}</div>`;
+        }
+
+        function setStatus(text) {
+            els.statusText.textContent = text;
+        }
+    </script>
+</body>
+</html>

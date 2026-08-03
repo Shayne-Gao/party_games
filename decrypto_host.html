@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>截码战 · 主持人页</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="./decrypto_word_bank.js"></script>
+    <script src="./decrypto_shared.js"></script>
+    <style>
+        :root {
+            --bg: #08110d;
+            --panel: rgba(11, 21, 17, 0.9);
+            --panel-soft: rgba(255, 255, 255, 0.035);
+            --line: rgba(139, 166, 154, 0.16);
+            --line-strong: rgba(214, 188, 122, 0.36);
+            --text: #eef4ef;
+            --muted: #9dada2;
+            --accent: #d6bc7a;
+            --green: #2f8c6a;
+            --blue: #3c6fe0;
+            --danger: #ba5d5d;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+            --radius: 22px;
+            --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            --font-title: "Arial Black", "Helvetica Neue", "PingFang SC", sans-serif;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            font-family: var(--font-ui);
+            background:
+                radial-gradient(circle at top right, rgba(38, 92, 74, 0.28), transparent 24%),
+                radial-gradient(circle at bottom left, rgba(214, 188, 122, 0.14), transparent 34%),
+                linear-gradient(180deg, #0a130f 0%, #070f0b 100%);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+            background-size: 26px 26px;
+            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.78), transparent);
+        }
+
+        .shell {
+            width: min(1160px, 100%);
+            margin: 0 auto;
+            padding: 24px 16px 40px;
+        }
+
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .hero-title {
+            margin: 0;
+            font-family: var(--font-title);
+            font-size: clamp(2rem, 5vw, 3.3rem);
+            line-height: 0.95;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .hero-subtitle {
+            margin-top: 12px;
+            max-width: 720px;
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 0.92rem;
+        }
+
+        .return-link {
+            color: var(--accent);
+            text-decoration: none;
+            border: 1px solid var(--line-strong);
+            padding: 10px 14px;
+            border-radius: 999px;
+            white-space: nowrap;
+            background: rgba(15, 25, 21, 0.65);
+            height: fit-content;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.05fr 0.95fr;
+            gap: 16px;
+        }
+
+        .panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius);
+            border: 1px solid var(--line);
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+        }
+
+        .panel::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        .panel-body { position: relative; z-index: 1; padding: 18px; }
+        .section-title {
+            margin: 0 0 14px;
+            color: var(--accent);
+            font-size: 0.92rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .row > * { flex: 1; }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        input, button {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            font: inherit;
+        }
+
+        input {
+            padding: 13px 14px;
+            background: rgba(7, 14, 11, 0.92);
+            color: var(--text);
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--line-strong);
+            box-shadow: 0 0 0 3px rgba(214, 188, 122, 0.12);
+        }
+
+        button {
+            cursor: pointer;
+            padding: 13px 16px;
+            color: var(--text);
+            background: #121b17;
+            transition: transform 0.16s ease, border-color 0.16s ease;
+        }
+
+        button:hover { transform: translateY(-1px); border-color: var(--line-strong); }
+        button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+        .btn-accent { background: linear-gradient(180deg, rgba(214, 188, 122, 0.2), rgba(214, 188, 122, 0.08)); border-color: var(--line-strong); }
+        .btn-green { background: linear-gradient(180deg, rgba(47, 140, 106, 0.28), rgba(47, 140, 106, 0.14)); border-color: rgba(47, 140, 106, 0.5); }
+        .btn-blue { background: linear-gradient(180deg, rgba(60, 111, 224, 0.26), rgba(60, 111, 224, 0.13)); border-color: rgba(98, 143, 233, 0.42); }
+        .btn-danger { background: linear-gradient(180deg, rgba(186, 93, 93, 0.26), rgba(186, 93, 93, 0.13)); border-color: rgba(186, 93, 93, 0.45); }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .stat {
+            padding: 14px;
+            border-radius: 16px;
+            background: var(--panel-soft);
+            border: 1px solid var(--line);
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.14rem;
+            font-weight: 700;
+        }
+
+        .status-strip {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(0, 0, 0, 0.18);
+            color: var(--muted);
+            font-size: 0.86rem;
+            line-height: 1.55;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .team-card {
+            padding: 14px;
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            background: var(--panel-soft);
+        }
+
+        .team-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .team-name {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .team-pill {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            border: 1px solid var(--line);
+            color: var(--muted);
+        }
+
+        .player-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .player-tag {
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 0.82rem;
+        }
+
+        .link-box {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .link-box input {
+            flex: 1;
+            font-size: 0.82rem;
+        }
+
+        .link-box button {
+            width: auto;
+            white-space: nowrap;
+            padding-inline: 14px;
+        }
+
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .word-chip {
+            min-height: 66px;
+            padding: 10px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .word-chip.is-placeholder {
+            border-style: dashed;
+            color: var(--muted);
+            font-size: 0.84rem;
+            font-weight: 500;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: 1fr; }
+            .hero { flex-direction: column; }
+        }
+
+        @media (max-width: 560px) {
+            .shell { padding: 16px 12px 28px; }
+            .row, .stats, .team-grid { display: grid; grid-template-columns: 1fr; }
+            .word-grid { grid-template-columns: 1fr 1fr; }
+            .link-box { flex-direction: column; align-items: stretch; }
+            .link-box button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <div class="hero">
+            <div>
+                <h1 class="hero-title">DECRYPTO<br>主持人页</h1>
+                <div class="hero-subtitle">
+                    这个页面只负责建房、看分组、给 A/B 两队发固定关键词，以及推进轮次。队员不需要打开这个页面，只使用对应的队伍页面即可。
+                </div>
+            </div>
+            <a class="return-link" href="./index.html">返回游戏目录</a>
+        </div>
+
+        <div class="grid">
+            <section class="panel">
+                <div class="panel-body">
+                    <div class="section-title">房间控制</div>
+                    <div class="row">
+                        <div>
+                            <label for="room-input">房间码</label>
+                            <input id="room-input" type="text" maxlength="12" placeholder="例如：DC8392">
+                        </div>
+                        <div>
+                            <label for="host-link">主持人链接</label>
+                            <input id="host-link" type="text" readonly placeholder="创建房间后自动生成">
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top:12px;">
+                        <button id="create-btn" class="btn-accent">创建主持人房间</button>
+                        <button id="copy-host-link-btn" class="btn-blue">复制主持人链接</button>
+                    </div>
+
+                    <div class="stats" style="margin-top:16px;">
+                        <div class="stat">
+                            <div class="stat-label">房间码</div>
+                            <div class="stat-value" id="meta-room">未创建</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">阶段</div>
+                            <div class="stat-value" id="meta-phase">等待中</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">轮次</div>
+                            <div class="stat-value" id="meta-round">-</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <button id="start-btn" class="btn-green">开局发两队关键词</button>
+                        <button id="next-round-btn" class="btn-blue">进入下一轮</button>
+                        <button id="restart-btn" class="btn-danger">重开整局并重发词</button>
+                    </div>
+
+                    <div class="status-strip" id="status-text">
+                        尚未创建房间。创建后再把 A 队 / B 队的专属链接分享给对应玩家。
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-body">
+                    <div class="section-title">队伍入口</div>
+                    <div class="team-grid">
+                        <div class="team-card">
+                            <div class="team-head">
+                                <div class="team-name">A 队页面</div>
+                                <div class="team-pill" id="count-A">0 人</div>
+                            </div>
+                            <div class="link-box">
+                                <input id="team-link-A" type="text" readonly placeholder="创建房间后生成 A 队链接">
+                                <button class="btn-blue" data-team-copy="A">复制 A 队链接</button>
+                            </div>
+                            <div class="player-list" id="players-A" style="margin-top:12px;"></div>
+                        </div>
+                        <div class="team-card">
+                            <div class="team-head">
+                                <div class="team-name">B 队页面</div>
+                                <div class="team-pill" id="count-B">0 人</div>
+                            </div>
+                            <div class="link-box">
+                                <input id="team-link-B" type="text" readonly placeholder="创建房间后生成 B 队链接">
+                                <button class="btn-blue" data-team-copy="B">复制 B 队链接</button>
+                            </div>
+                            <div class="player-list" id="players-B" style="margin-top:12px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="panel" style="margin-top:16px;">
+            <div class="panel-body">
+                <div class="section-title">发牌结果</div>
+                <div class="hint" id="word-hint">
+                    开局后，这里会展示 A/B 两队各自的 4 个固定关键词。整局内这些词保持不变，只有重开整局时才会重新发放。
+                </div>
+                <div class="team-grid" style="margin-top:14px;">
+                    <div class="team-card">
+                        <div class="team-head">
+                            <div class="team-name">A 队关键词</div>
+                            <div class="team-pill">主持人可见</div>
+                        </div>
+                        <div class="word-grid" id="words-A"></div>
+                    </div>
+                    <div class="team-card">
+                        <div class="team-head">
+                            <div class="team-name">B 队关键词</div>
+                            <div class="team-pill">主持人可见</div>
+                        </div>
+                        <div class="word-grid" id="words-B"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const { sanitizeRoomCode, generateRoomCode, hostIdFromRoom, createSessionId, escapeHtml, generateTeamWords, buildTeamLink, buildHostLink } = window.DECRYPTO_SHARED;
+
+        const state = {
+            peer: null,
+            roomCode: "",
+            hostPeerId: "",
+            selfPeerId: "",
+            phase: "lobby",
+            round: 1,
+            sessionId: "",
+            players: [],
+            teamWords: { A: [], B: [] },
+            connections: new Map()
+        };
+
+        const els = {
+            roomInput: document.getElementById("room-input"),
+            hostLink: document.getElementById("host-link"),
+            createBtn: document.getElementById("create-btn"),
+            copyHostLinkBtn: document.getElementById("copy-host-link-btn"),
+            metaRoom: document.getElementById("meta-room"),
+            metaPhase: document.getElementById("meta-phase"),
+            metaRound: document.getElementById("meta-round"),
+            startBtn: document.getElementById("start-btn"),
+            nextRoundBtn: document.getElementById("next-round-btn"),
+            restartBtn: document.getElementById("restart-btn"),
+            statusText: document.getElementById("status-text"),
+            teamLinkA: document.getElementById("team-link-A"),
+            teamLinkB: document.getElementById("team-link-B"),
+            playersA: document.getElementById("players-A"),
+            playersB: document.getElementById("players-B"),
+            countA: document.getElementById("count-A"),
+            countB: document.getElementById("count-B"),
+            wordsA: document.getElementById("words-A"),
+            wordsB: document.getElementById("words-B"),
+            wordHint: document.getElementById("word-hint")
+        };
+
+        init();
+
+        function init() {
+            const params = new URLSearchParams(window.location.search);
+            const room = sanitizeRoomCode(params.get("room") || "");
+            if (room) els.roomInput.value = room;
+
+            els.createBtn.addEventListener("click", createRoom);
+            els.copyHostLinkBtn.addEventListener("click", () => copyText(els.hostLink.value, "主持人链接已复制"));
+            els.startBtn.addEventListener("click", startGame);
+            els.nextRoundBtn.addEventListener("click", nextRound);
+            els.restartBtn.addEventListener("click", restartGame);
+            document.querySelectorAll("[data-team-copy]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const team = button.getAttribute("data-team-copy");
+                    const value = team === "A" ? els.teamLinkA.value : els.teamLinkB.value;
+                    copyText(value, `${team} 队链接已复制`);
+                });
+            });
+
+            renderAll();
+        }
+
+        function createRoom() {
+            if (state.peer) return;
+            state.roomCode = sanitizeRoomCode(els.roomInput.value) || generateRoomCode();
+            state.hostPeerId = hostIdFromRoom(state.roomCode);
+            state.sessionId = createSessionId();
+            els.roomInput.value = state.roomCode;
+            syncLinks();
+            setStatus("正在创建主持人房间...");
+
+            state.peer = new Peer(state.hostPeerId);
+            state.peer.on("open", (peerId) => {
+                state.selfPeerId = peerId;
+                setStatus("主持人房间已创建，等待 A / B 队玩家加入");
+                renderAll();
+            });
+            state.peer.on("connection", handleIncomingConnection);
+            state.peer.on("error", handlePeerError);
+        }
+
+        function handleIncomingConnection(conn) {
+            state.connections.set(conn.peer, conn);
+            conn.on("data", (data) => {
+                if (data.type === "join") {
+                    upsertPlayer({ peerId: conn.peer, name: data.payload.name, team: data.payload.team });
+                    broadcastRoomState();
+                    renderAll();
+                }
+            });
+            conn.on("close", () => {
+                state.connections.delete(conn.peer);
+                state.players = state.players.filter((player) => player.peerId !== conn.peer);
+                broadcastRoomState();
+                renderAll();
+            });
+            conn.on("error", (error) => console.warn("host connection error", error));
+        }
+
+        function handlePeerError(error) {
+            console.error(error);
+            if (error.type === "unavailable-id") {
+                alert("这个房间码已经被占用，请换一个房间码再创建。");
+            } else {
+                alert(`创建房间失败：${error.type || error.message}`);
+            }
+            setStatus("创建失败，请重试");
+        }
+
+        function startGame() {
+            if (!state.peer) return;
+            state.phase = "running";
+            state.round = 1;
+            state.sessionId = createSessionId();
+            state.teamWords = generateTeamWords();
+            broadcastRoomState();
+            renderAll();
+        }
+
+        function nextRound() {
+            if (!state.peer || state.phase !== "running") return;
+            state.round += 1;
+            broadcastRoomState();
+            renderAll();
+        }
+
+        function restartGame() {
+            if (!state.peer) return;
+            state.phase = "running";
+            state.round = 1;
+            state.sessionId = createSessionId();
+            state.teamWords = generateTeamWords();
+            broadcastRoomState();
+            renderAll();
+        }
+
+        function broadcastRoomState() {
+            const payload = {
+                roomCode: state.roomCode,
+                phase: state.phase,
+                round: state.round,
+                sessionId: state.sessionId,
+                players: state.players,
+                teamWords: state.teamWords
+            };
+            state.connections.forEach((conn) => {
+                if (conn.open) conn.send({ type: "state_sync", payload });
+            });
+        }
+
+        function upsertPlayer(player) {
+            const index = state.players.findIndex((item) => item.peerId === player.peerId);
+            if (index >= 0) {
+                state.players[index] = player;
+            } else {
+                state.players.push(player);
+            }
+        }
+
+        function syncLinks() {
+            if (!state.roomCode) return;
+            const hostLink = buildHostLink(state.roomCode);
+            els.hostLink.value = hostLink;
+            els.teamLinkA.value = buildTeamLink(state.roomCode, "A");
+            els.teamLinkB.value = buildTeamLink(state.roomCode, "B");
+
+            const url = new URL(window.location.href);
+            url.searchParams.set("room", state.roomCode);
+            history.replaceState({}, "", url.toString());
+        }
+
+        function copyText(value, successMessage) {
+            if (!value) {
+                alert("当前还没有可复制的链接");
+                return;
+            }
+            navigator.clipboard.writeText(value).then(() => {
+                setStatus(successMessage);
+            }).catch(() => {
+                alert("复制失败，请手动复制");
+            });
+        }
+
+        function renderAll() {
+            renderMeta();
+            renderPlayers();
+            renderWords();
+            renderControls();
+        }
+
+        function renderMeta() {
+            els.metaRoom.textContent = state.roomCode || "未创建";
+            els.metaPhase.textContent = state.phase === "running" ? "进行中" : "等待中";
+            els.metaRound.textContent = state.phase === "running" ? `第 ${state.round} 轮` : "-";
+        }
+
+        function renderPlayers() {
+            const groups = { A: [], B: [] };
+            state.players.forEach((player) => {
+                if (groups[player.team]) groups[player.team].push(player);
+            });
+            els.playersA.innerHTML = renderPlayerTags(groups.A);
+            els.playersB.innerHTML = renderPlayerTags(groups.B);
+            els.countA.textContent = `${groups.A.length} 人`;
+            els.countB.textContent = `${groups.B.length} 人`;
+        }
+
+        function renderPlayerTags(players) {
+            if (!players.length) return '<div class="player-tag">暂无玩家</div>';
+            return players.map((player) => `<div class="player-tag">${escapeHtml(player.name)}</div>`).join("");
+        }
+
+        function renderWords() {
+            renderWordPanel(els.wordsA, state.teamWords.A);
+            renderWordPanel(els.wordsB, state.teamWords.B);
+            els.wordHint.textContent = state.phase === "running"
+                ? `当前是第 ${state.round} 轮。主持人页会显示两队固定词板，方便线下控场和核对。`
+                : "开局后，这里会展示 A / B 两队各自的 4 个固定关键词。";
+        }
+
+        function renderWordPanel(container, words) {
+            if (!words.length) {
+                container.innerHTML = Array.from({ length: 4 }, () => '<div class="word-chip is-placeholder">等待发词</div>').join("");
+                return;
+            }
+            container.innerHTML = words.map((word) => `<div class="word-chip">${escapeHtml(word)}</div>`).join("");
+        }
+
+        function renderControls() {
+            const ready = Boolean(state.peer);
+            els.startBtn.disabled = !ready;
+            els.nextRoundBtn.disabled = !ready || state.phase !== "running";
+            els.restartBtn.disabled = !ready;
+        }
+
+        function setStatus(text) {
+            els.statusText.textContent = text;
+        }
+    </script>
+</body>
+</html>
