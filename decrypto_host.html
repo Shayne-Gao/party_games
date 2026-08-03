@@ -331,7 +331,7 @@
             <div>
                 <h1 class="hero-title">DECRYPTO<br>主持人页</h1>
                 <div class="hero-subtitle">
-                    这个页面只负责建房、看分组、给 A/B 两队发固定关键词，以及推进轮次。队员不需要打开这个页面，只使用对应的队伍页面即可。
+                    这个页面只负责建房、看分组、给 A/B 两队发固定关键词，以及推进轮次。主持人页不会展示任何队伍词板；如果主持人自己也要参赛，请再打开对应的队伍页面加入。
                 </div>
             </div>
             <a class="return-link" href="./index.html">返回游戏目录</a>
@@ -395,6 +395,7 @@
                             <div class="link-box">
                                 <input id="team-link-A" type="text" readonly placeholder="创建房间后生成 A 队链接">
                                 <button class="btn-blue" data-team-copy="A">复制 A 队链接</button>
+                                <button class="btn-green" data-team-open="A">打开 A 队页</button>
                             </div>
                             <div class="player-list" id="players-A" style="margin-top:12px;"></div>
                         </div>
@@ -406,6 +407,7 @@
                             <div class="link-box">
                                 <input id="team-link-B" type="text" readonly placeholder="创建房间后生成 B 队链接">
                                 <button class="btn-blue" data-team-copy="B">复制 B 队链接</button>
+                                <button class="btn-green" data-team-open="B">打开 B 队页</button>
                             </div>
                             <div class="player-list" id="players-B" style="margin-top:12px;"></div>
                         </div>
@@ -416,22 +418,22 @@
 
         <section class="panel" style="margin-top:16px;">
             <div class="panel-body">
-                <div class="section-title">发牌结果</div>
+                <div class="section-title">主持人须知</div>
                 <div class="hint" id="word-hint">
-                    开局后，这里会展示 A/B 两队各自的 4 个固定关键词。整局内这些词保持不变，只有重开整局时才会重新发放。
+                    开局或重开后，系统仍会给 A/B 两队发放固定关键词，但主持人页不会显示这些内容，避免主持人看到词板。若主持人自己也参加游戏，请点击上方 A 队或 B 队入口，在新标签页加入对应队伍。
                 </div>
                 <div class="team-grid" style="margin-top:14px;">
                     <div class="team-card">
                         <div class="team-head">
-                            <div class="team-name">A 队关键词</div>
-                            <div class="team-pill">主持人可见</div>
+                            <div class="team-name">A 队词板</div>
+                            <div class="team-pill">主持人不可见</div>
                         </div>
                         <div class="word-grid" id="words-A"></div>
                     </div>
                     <div class="team-card">
                         <div class="team-head">
-                            <div class="team-name">B 队关键词</div>
-                            <div class="team-pill">主持人可见</div>
+                            <div class="team-name">B 队词板</div>
+                            <div class="team-pill">主持人不可见</div>
                         </div>
                         <div class="word-grid" id="words-B"></div>
                     </div>
@@ -496,6 +498,13 @@
                     const team = button.getAttribute("data-team-copy");
                     const value = team === "A" ? els.teamLinkA.value : els.teamLinkB.value;
                     copyText(value, `${team} 队链接已复制`);
+                });
+            });
+            document.querySelectorAll("[data-team-open]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const team = button.getAttribute("data-team-open");
+                    const value = team === "A" ? els.teamLinkA.value : els.teamLinkB.value;
+                    openTeamPage(value, team);
                 });
             });
 
@@ -623,6 +632,15 @@
             });
         }
 
+        function openTeamPage(value, team) {
+            if (!value) {
+                alert("请先创建房间，再打开队伍页面");
+                return;
+            }
+            window.open(value, "_blank", "noopener");
+            setStatus(`已在新标签页打开 ${team} 队页面，主持人也可以在那里加入队伍`);
+        }
+
         function renderAll() {
             renderMeta();
             renderPlayers();
@@ -653,19 +671,18 @@
         }
 
         function renderWords() {
-            renderWordPanel(els.wordsA, state.teamWords.A);
-            renderWordPanel(els.wordsB, state.teamWords.B);
+            renderWordPanel(els.wordsA, "A");
+            renderWordPanel(els.wordsB, "B");
             els.wordHint.textContent = state.phase === "running"
-                ? `当前是第 ${state.round} 轮。主持人页会显示两队固定词板，方便线下控场和核对。`
-                : "开局后，这里会展示 A / B 两队各自的 4 个固定关键词。";
+                ? `当前是第 ${state.round} 轮。两队词板已经下发到各自的队伍页面，主持人页继续保持不显示。`
+                : "创建房间后可分享 A / B 队入口。开局后词板只会显示在各自队伍页中。";
         }
 
-        function renderWordPanel(container, words) {
-            if (!words.length) {
-                container.innerHTML = Array.from({ length: 4 }, () => '<div class="word-chip is-placeholder">等待发词</div>').join("");
-                return;
-            }
-            container.innerHTML = words.map((word) => `<div class="word-chip">${escapeHtml(word)}</div>`).join("");
+        function renderWordPanel(container, team) {
+            const hiddenText = state.phase === "running"
+                ? `${team} 队词板已发送`
+                : "等待发词";
+            container.innerHTML = Array.from({ length: 4 }, () => `<div class="word-chip is-placeholder">${hiddenText}</div>`).join("");
         }
 
         function renderControls() {
