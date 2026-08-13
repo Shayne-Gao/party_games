@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>儿童跑团助手</title>
+    <style>
+        :root {
+            --bg: #2b1b12;
+            --paper: #fff2c8;
+            --paper-deep: #f5d899;
+            --card: #fff8dc;
+            --ink: #382315;
+            --muted: #7e6040;
+            --line: #c99855;
+            --line-soft: #e7c58b;
+            --orange: #d9652b;
+            --yellow: #f4bd3f;
+            --green: #4f9c59;
+            --blue: #3f7cc7;
+            --red: #c94b3f;
+            --purple: #7c5ac9;
+            --shadow: 0 12px 28px rgba(51, 29, 12, 0.26);
+            --inner-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            --radius: 18px;
+            --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 12% 8%, rgba(255, 207, 98, 0.22), transparent 26%),
+                radial-gradient(circle at 88% 4%, rgba(91, 148, 225, 0.2), transparent 24%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%) 0 0 / 28px 28px,
+                linear-gradient(315deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%) 0 0 / 28px 28px,
+                linear-gradient(180deg, #3a2417 0%, #24160f 100%);
+            font-family: var(--font);
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            border: 0;
+            cursor: pointer;
+            box-shadow: var(--inner-shadow);
+            transition: transform 0.08s ease, filter 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        button:active {
+            transform: translateY(1px) scale(0.98);
+            filter: brightness(0.96);
+        }
+
+        .app {
+            width: min(100%, 520px);
+            min-height: 100vh;
+            margin: 0 auto;
+            padding: 10px;
+            background:
+                radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.45) 0 1px, transparent 2px),
+                radial-gradient(circle at 78% 30%, rgba(255, 255, 255, 0.35) 0 1px, transparent 2px);
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 9px;
+            padding: 9px 10px;
+            border: 2px solid rgba(244, 189, 63, 0.42);
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(255, 242, 200, 0.96), rgba(237, 196, 116, 0.92));
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 22px;
+            line-height: 1.1;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+        }
+
+        h1::before {
+            content: "✦ ";
+            color: var(--orange);
+        }
+
+        .mini-rule {
+            color: var(--muted);
+            font-size: 11px;
+            text-align: right;
+            font-weight: 800;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .card {
+            position: relative;
+            overflow: hidden;
+            padding: 10px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.54), transparent 30%),
+                radial-gradient(circle at 100% 0%, rgba(255, 230, 142, 0.42), transparent 28%),
+                var(--card);
+            border: 2px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 4px;
+            pointer-events: none;
+            border: 1px dashed rgba(141, 94, 41, 0.2);
+            border-radius: calc(var(--radius) - 5px);
+        }
+
+        .card > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-card {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 8px;
+            background:
+                linear-gradient(135deg, rgba(255, 252, 226, 0.96), rgba(246, 218, 153, 0.96)),
+                var(--card);
+        }
+
+        .row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        label,
+        .label {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            min-width: 0;
+            border: 1.5px solid var(--line-soft);
+            border-radius: 12px;
+            background: rgba(255, 255, 249, 0.9);
+            color: var(--ink);
+            outline: none;
+            box-shadow: inset 0 1px 4px rgba(108, 72, 28, 0.08);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--orange);
+            box-shadow: 0 0 0 3px rgba(217, 101, 43, 0.16);
+        }
+
+        input,
+        select {
+            height: 34px;
+            padding: 0 9px;
+        }
+
+        textarea {
+            min-height: 86px;
+            padding: 9px;
+            resize: vertical;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+        }
+
+        .stat {
+            position: relative;
+            padding: 7px 5px 6px;
+            border: 1.5px solid var(--line);
+            border-radius: 14px;
+            background: linear-gradient(180deg, #fffdf3, #ffeab8);
+            text-align: center;
+            box-shadow: inset 0 -2px 0 rgba(157, 103, 33, 0.08);
+        }
+
+        .stat button {
+            width: 100%;
+            padding: 0;
+            background: transparent;
+            color: var(--ink);
+            box-shadow: none;
+        }
+
+        .stat-name {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #5b351c;
+        }
+
+        .stat input {
+            height: 30px;
+            padding: 0;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 900;
+            background: #fff9df;
+        }
+
+        .meters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .meter {
+            padding: 7px;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #fff8df, #f9dc9a);
+            border: 1.5px solid var(--line);
+        }
+
+        .meter:nth-child(1) .label::before {
+            content: "♥ ";
+            color: var(--red);
+        }
+
+        .meter:nth-child(2) .label::before {
+            content: "◆ ";
+            color: #c38a16;
+        }
+
+        .meter-value {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 5px;
+        }
+
+        .meter strong {
+            min-width: 30px;
+            text-align: center;
+            font-size: 22px;
+        }
+
+        .round-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(180deg, #ffe48b, #e7a72d);
+            color: var(--ink);
+            font-size: 19px;
+            font-weight: 900;
+            border: 1px solid rgba(126, 90, 28, 0.28);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 900;
+            color: #4d2b17;
+        }
+
+        .section-title::before {
+            content: "◇";
+            margin-right: 5px;
+            color: var(--orange);
+        }
+
+        .section-title span:first-child,
+        .section-title {
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+        }
+
+        .difficulty {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .chip {
+            height: 30px;
+            border-radius: 999px;
+            border: 1.5px solid var(--line-soft);
+            background: linear-gradient(180deg, #fffdf2, #f6e1af);
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .chip.active {
+            border-color: var(--orange);
+            background: linear-gradient(180deg, #ffb36f, #d9652b);
+            color: var(--ink);
+            color: #fff9e8;
+            text-shadow: 0 1px 0 rgba(77, 36, 12, 0.35);
+        }
+
+        .spell-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 7px;
+        }
+
+        .spell {
+            display: grid;
+            grid-template-columns: 1fr 72px;
+            gap: 6px;
+            padding: 7px;
+            border: 1.5px solid #9fb7df;
+            border-radius: 15px;
+            background:
+                radial-gradient(circle at 100% 0%, rgba(120, 161, 230, 0.23), transparent 34%),
+                linear-gradient(180deg, #f7fbff, #efe5ff);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+        }
+
+        .spell input,
+        .spell select {
+            height: 30px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        .spell textarea {
+            min-height: 42px;
+            padding: 7px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        .spell-tools {
+            display: grid;
+            gap: 5px;
+        }
+
+        .cast-btn {
+            border-radius: 12px;
+            background: linear-gradient(180deg, #78a8ff, #3f7cc7);
+            color: #fff;
+            font-weight: 900;
+            text-shadow: 0 1px 0 rgba(20, 55, 102, 0.4);
+        }
+
+        .delete-btn {
+            border-radius: 12px;
+            background: linear-gradient(180deg, #f5e7d2, #dfc29b);
+            color: var(--muted);
+            font-weight: 800;
+        }
+
+        .add-btn,
+        .save-btn {
+            height: 30px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, #79c883, #3f8d4a);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 900;
+            text-shadow: 0 1px 0 rgba(38, 89, 44, 0.35);
+        }
+
+        .dice-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+        }
+
+        .dice-row button {
+            height: 38px;
+            border-radius: 13px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.7), transparent 45%),
+                linear-gradient(180deg, #fffaf0, #f2c978);
+            border: 1.5px solid var(--line);
+            color: var(--ink);
+            font-weight: 900;
+        }
+
+        .result {
+            position: sticky;
+            bottom: 8px;
+            z-index: 3;
+            margin-top: 8px;
+            padding: 10px 12px;
+            border: 2px solid #f0bd48;
+            border-radius: 18px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.54), transparent 30%),
+                linear-gradient(180deg, #fff4ba, #ffd76d);
+            box-shadow: var(--shadow);
+            font-size: 14px;
+            font-weight: 800;
+            color: #44270f;
+        }
+
+        .result::before {
+            content: "🎲 ";
+        }
+
+        .result small {
+            display: block;
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        details summary {
+            cursor: pointer;
+            list-style: none;
+        }
+
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .compact {
+            padding: 8px 10px;
+        }
+
+        .compact summary {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: 900;
+            color: #4d2b17;
+        }
+
+        .compact-body {
+            margin-top: 8px;
+        }
+
+        @media (min-width: 760px) {
+            .app {
+                max-width: 900px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .span-2 {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-height: 720px) {
+            .app {
+                padding: 7px;
+            }
+
+            .card {
+                padding: 8px;
+            }
+
+            textarea {
+                min-height: 58px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="app">
+        <div class="topbar">
+            <h1>儿童跑团助手</h1>
+            <div class="mini-rule">D6 ≤ 属性成功<br>1 大成功，6 有麻烦</div>
+        </div>
+
+        <div class="grid">
+            <section class="card hero-card span-2">
+                <div>
+                    <div class="row">
+                        <div class="field">
+                            <label for="name">名字</label>
+                            <input id="name" data-save="name" value="小法师">
+                        </div>
+                        <div class="field">
+                            <label for="job">职业</label>
+                            <input id="job" data-save="job" value="法师">
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top:6px;">
+                        <label for="note">基本信息</label>
+                        <input id="note" data-save="note" value="会火球、闪电和动物交谈">
+                    </div>
+                </div>
+
+                <div class="meters">
+                    <div class="meter">
+                        <div class="label">生命</div>
+                        <div class="meter-value">
+                            <button class="round-btn" data-counter="hp" data-delta="-1">-</button>
+                            <strong id="hpText">10</strong>
+                            <button class="round-btn" data-counter="hp" data-delta="1">+</button>
+                        </div>
+                    </div>
+                    <div class="meter">
+                        <div class="label">金钱</div>
+                        <div class="meter-value">
+                            <button class="round-btn" data-counter="money" data-delta="-1">-</button>
+                            <strong id="moneyText">0</strong>
+                            <button class="round-btn" data-counter="money" data-delta="1">+</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card span-2">
+                <div class="section-title">
+                    <span>五维鉴定</span>
+                    <span id="totalText">总点数 20 / 20</span>
+                </div>
+                <div class="difficulty" id="difficulty">
+                    <button class="chip" data-mod="1">简单 +1</button>
+                    <button class="chip active" data-mod="0">普通</button>
+                    <button class="chip" data-mod="-1">困难 -1</button>
+                </div>
+                <div class="stat-grid" id="stats"></div>
+            </section>
+
+            <section class="card">
+                <div class="section-title">
+                    <span>法术</span>
+                    <button class="add-btn" id="addSpell">+ 新法术</button>
+                </div>
+                <div class="spell-grid" id="spells"></div>
+            </section>
+
+            <section class="card">
+                <div class="section-title">自由骰子</div>
+                <div class="dice-row">
+                    <button data-die="2">1d2</button>
+                    <button data-die="3">1d3</button>
+                    <button data-die="4">1d4</button>
+                    <button data-die="5">1d5</button>
+                    <button data-die="6">1d6</button>
+                </div>
+            </section>
+
+            <details class="card compact span-2">
+                <summary>
+                    <span>装备与道具记录</span>
+                    <span>展开/收起</span>
+                </summary>
+                <div class="compact-body">
+                    <textarea id="items" data-save="items" placeholder="例如：放大镜、绳子、糖果、小盾牌..."></textarea>
+                </div>
+            </details>
+        </div>
+
+        <div class="result" id="result">
+            点击属性、法术或骰子开始。
+            <small>数据会自动保存在当前浏览器里。</small>
+        </div>
+    </main>
+
+    <script>
+        const STORAGE_KEY = "kids-rpg-helper-v1";
+        const statNames = ["敏捷", "智力", "力量", "感知", "魅力"];
+        const defaultState = {
+            name: "小法师",
+            job: "法师",
+            note: "会火球、闪电和动物交谈",
+            hp: 10,
+            money: 0,
+            difficulty: 0,
+            stats: { "敏捷": 4, "智力": 6, "力量": 2, "感知": 4, "魅力": 4 },
+            items: "装备：\n道具：\n线索：",
+            spells: [
+                { name: "火球术", die: 6, targets: 1, note: "对 1 个目标造成 1d6 伤害。" },
+                { name: "闪电箭", die: 3, targets: 3, note: "掷一次 1d3，最多 3 个目标都受到这个伤害。" },
+                { name: "动物交谈", die: 0, targets: 1, note: "和一只普通动物简单交流，动物可能需要食物或帮助。" }
+            ]
+        };
+
+        let state = loadState();
+
+        function loadState() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                return saved ? { ...clone(defaultState), ...saved } : clone(defaultState);
+            } catch (error) {
+                return clone(defaultState);
+            }
+        }
+
+        function clone(value) {
+            return JSON.parse(JSON.stringify(value));
+        }
+
+        function saveState() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, Number(value) || 0));
+        }
+
+        function roll(sides) {
+            return Math.floor(Math.random() * sides) + 1;
+        }
+
+        function setResult(title, detail) {
+            document.getElementById("result").innerHTML = `${title}<small>${detail || ""}</small>`;
+        }
+
+        function renderBasic() {
+            document.querySelectorAll("[data-save]").forEach((element) => {
+                element.value = state[element.dataset.save] ?? "";
+                element.addEventListener("input", () => {
+                    state[element.dataset.save] = element.value;
+                    saveState();
+                });
+            });
+            document.getElementById("hpText").textContent = state.hp;
+            document.getElementById("moneyText").textContent = state.money;
+        }
+
+        function renderStats() {
+            const statsEl = document.getElementById("stats");
+            statsEl.innerHTML = "";
+
+            statNames.forEach((name) => {
+                const stat = document.createElement("div");
+                stat.className = "stat";
+                stat.innerHTML = `
+                    <button type="button" aria-label="${name}鉴定">
+                        <span class="stat-name">${name}</span>
+                    </button>
+                    <input type="number" min="1" max="6" value="${state.stats[name]}">
+                `;
+
+                stat.querySelector("button").addEventListener("click", () => checkStat(name));
+                stat.querySelector("input").addEventListener("input", (event) => {
+                    state.stats[name] = clamp(event.target.value, 1, 6);
+                    event.target.value = state.stats[name];
+                    updateTotal();
+                    saveState();
+                });
+                statsEl.appendChild(stat);
+            });
+
+            updateTotal();
+        }
+
+        function updateTotal() {
+            const total = statNames.reduce((sum, name) => sum + Number(state.stats[name] || 0), 0);
+            const totalEl = document.getElementById("totalText");
+            totalEl.textContent = `总点数 ${total} / 20`;
+            totalEl.style.color = total === 20 ? "var(--muted)" : "#b94939";
+        }
+
+        function renderDifficulty() {
+            document.querySelectorAll("#difficulty .chip").forEach((button) => {
+                button.classList.toggle("active", Number(button.dataset.mod) === state.difficulty);
+                button.onclick = () => {
+                    state.difficulty = Number(button.dataset.mod);
+                    saveState();
+                    renderDifficulty();
+                };
+            });
+        }
+
+        function checkStat(name) {
+            const raw = Number(state.stats[name] || 1);
+            const target = clamp(raw + state.difficulty, 1, 6);
+            const dice = roll(6);
+            let outcome = dice <= target ? "成功" : "失败";
+            let extra = "";
+
+            if (dice === 1) {
+                outcome = "大成功";
+                extra = "额外获得一个好处。";
+            } else if (dice === 6) {
+                outcome = raw >= 6 && dice <= target ? "成功但有麻烦" : "失败并有麻烦";
+                extra = "主持人加入一个有趣的小麻烦。";
+            }
+
+            setResult(`${name}鉴定：原始骰点 1d6 = ${dice}，${outcome}`, `判定目标 ${target}；原属性 ${raw}，当前难度修正 ${state.difficulty >= 0 ? "+" : ""}${state.difficulty}。${extra}`);
+        }
+
+        function renderCounters() {
+            document.querySelectorAll("[data-counter]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const key = button.dataset.counter;
+                    const next = Number(state[key] || 0) + Number(button.dataset.delta);
+                    state[key] = Math.max(0, next);
+                    saveState();
+                    document.getElementById(`${key}Text`).textContent = state[key];
+                });
+            });
+        }
+
+        function renderSpells() {
+            const spellsEl = document.getElementById("spells");
+            spellsEl.innerHTML = "";
+
+            state.spells.forEach((spell, index) => {
+                const el = document.createElement("div");
+                el.className = "spell";
+                el.innerHTML = `
+                    <div>
+                        <div class="row">
+                            <input aria-label="法术名" value="${escapeHtml(spell.name)}">
+                            <select aria-label="伤害骰">
+                                <option value="0">无骰</option>
+                                <option value="2">1d2</option>
+                                <option value="3">1d3</option>
+                                <option value="4">1d4</option>
+                                <option value="5">1d5</option>
+                                <option value="6">1d6</option>
+                            </select>
+                            <select aria-label="目标数">
+                                <option value="1">1目标</option>
+                                <option value="2">2目标</option>
+                                <option value="3">3目标</option>
+                            </select>
+                        </div>
+                        <textarea aria-label="法术说明">${escapeHtml(spell.note)}</textarea>
+                    </div>
+                    <div class="spell-tools">
+                        <button class="cast-btn">释放</button>
+                        <button class="delete-btn">删除</button>
+                    </div>
+                `;
+
+                const [nameInput, dieSelect, targetSelect] = el.querySelectorAll("input, select");
+                const noteInput = el.querySelector("textarea");
+                dieSelect.value = String(spell.die);
+                targetSelect.value = String(spell.targets);
+
+                [nameInput, dieSelect, targetSelect, noteInput].forEach((input) => {
+                    input.addEventListener("input", () => {
+                        spell.name = nameInput.value || "未命名法术";
+                        spell.die = Number(dieSelect.value);
+                        spell.targets = Number(targetSelect.value);
+                        spell.note = noteInput.value;
+                        saveState();
+                    });
+                });
+
+                el.querySelector(".cast-btn").addEventListener("click", () => castSpell(spell));
+                el.querySelector(".delete-btn").addEventListener("click", () => {
+                    state.spells.splice(index, 1);
+                    saveState();
+                    renderSpells();
+                });
+                spellsEl.appendChild(el);
+            });
+        }
+
+        function castSpell(spell) {
+            if (!spell.die) {
+                setResult(`${spell.name}：发动成功`, spell.note || "这是一个剧情法术，不需要伤害骰。");
+                return;
+            }
+
+            const damage = roll(spell.die);
+            const targetText = spell.targets > 1 ? `最多 ${spell.targets} 个目标各受 ${damage} 点` : `1 个目标受到 ${damage} 点`;
+            setResult(`${spell.name}：掷出 1d${spell.die} = ${damage}`, `${targetText}。${spell.note || ""}`);
+        }
+
+        function renderDice() {
+            document.querySelectorAll("[data-die]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const die = Number(button.dataset.die);
+                    setResult(`自由骰：1d${die} = ${roll(die)}`, "可以用于伤害、随机选择或主持人临时判定。");
+                });
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;");
+        }
+
+        document.getElementById("addSpell").addEventListener("click", () => {
+            state.spells.push({ name: "新法术", die: 6, targets: 1, note: "写下效果..." });
+            saveState();
+            renderSpells();
+        });
+
+        renderBasic();
+        renderCounters();
+        renderDifficulty();
+        renderStats();
+        renderSpells();
+        renderDice();
+    </script>
+</body>
+</html>
