@@ -171,6 +171,7 @@
             font-weight: 900;
         }
 
+        .role-interrogator { color: #2c3e50; background: #e8eaf6; }
         .role-knower { color: var(--primary); background: #eadcf5; }
         .role-liar { color: var(--danger); background: #fff0df; }
 
@@ -249,6 +250,11 @@
             background: #fff4e6;
         }
 
+        .interrogator-note {
+            color: #2c3e50;
+            background: #eef1ff;
+        }
+
         .hint {
             color: var(--muted);
             font-size: 0.86rem;
@@ -281,7 +287,7 @@
         <div id="page-setup" class="page active">
             <a class="top-link" href="./index.html">← 返回游戏目录</a>
             <h1>瞎话王</h1>
-            <p class="subtitle">有人能看到词和解释，有人只能看到词。只看词的人要靠瞎编混过去。</p>
+            <p class="subtitle">每局 1 个想想负责质问和指认，1 个老实人知道解释，其余人都是瞎话王。</p>
 
             <div class="glass-card">
                 <span class="section-title">人数配置</span>
@@ -293,16 +299,9 @@
                         <button class="step-btn" onclick="adjustTotal(1)">+</button>
                     </div>
                 </div>
-                <div class="config-row">
-                    <span>瞎话王人数</span>
-                    <div class="stepper">
-                        <button class="step-btn" onclick="adjustLiars(-1)">-</button>
-                        <span class="step-val" id="val-liars">1</span>
-                        <button class="step-btn" onclick="adjustLiars(1)">+</button>
-                    </div>
-                </div>
                 <div class="role-bar">
-                    <span class="role-tag role-knower">知情者: <span id="disp-knowers">5</span></span>
+                    <span class="role-tag role-interrogator">想想: 1</span>
+                    <span class="role-tag role-knower">老实人: 1</span>
                     <span class="role-tag role-liar">瞎话王: <span id="disp-liars">1</span></span>
                 </div>
             </div>
@@ -342,7 +341,7 @@
             <div class="glass-card">
                 <span class="section-title">玩法提示</span>
                 <p class="hint">
-                    所有人都围绕自己看到的信息发言。知情者不要直接念解释；瞎话王要根据词语和别人发言临场编。讨论后线下投票找出瞎话王。
+                    想想负责提问、吐槽和控场，但不看解释。所有非想想玩家都要解释这个词；老实人按真解释说，瞎话王根据词语和别人发言临场编。最后想想指认谁是老实人。
                 </p>
             </div>
             <div class="glass-card">
@@ -358,7 +357,6 @@
 
         const state = {
             total: 6,
-            liars: getRecommendedLiars(6),
             players: [],
             currentIdx: 0,
             flipped: false,
@@ -375,29 +373,12 @@
             const next = state.total + delta;
             if (next < 3 || next > 20) return;
             state.total = next;
-            state.liars = getRecommendedLiars(next);
             renderSetup();
-        }
-
-        function adjustLiars(delta) {
-            const next = state.liars + delta;
-            if (next < 1 || next >= state.total) return;
-            state.liars = next;
-            renderSetup();
-        }
-
-        function getRecommendedLiars(total) {
-            if (total === 3) return 2;
-            if (total <= 6) return 1;
-            if (total <= 10) return 2;
-            return 3;
         }
 
         function renderSetup() {
             document.getElementById("val-total").textContent = state.total;
-            document.getElementById("val-liars").textContent = state.liars;
-            document.getElementById("disp-knowers").textContent = state.total - state.liars;
-            document.getElementById("disp-liars").textContent = state.liars;
+            document.getElementById("disp-liars").textContent = state.total - 2;
 
             const container = document.getElementById("names-container");
             while (container.children.length < state.total) {
@@ -422,10 +403,9 @@
 
             state.currentEntry = entries[Math.floor(Math.random() * entries.length)];
             const roles = [];
-            for (let i = 0; i < state.total - state.liars; i += 1) {
-                roles.push({ type: "knower" });
-            }
-            for (let i = 0; i < state.liars; i += 1) {
+            roles.push({ type: "interrogator" });
+            roles.push({ type: "knower" });
+            for (let i = 0; i < state.total - 2; i += 1) {
                 roles.push({ type: "liar" });
             }
             shuffleInPlace(roles);
@@ -483,12 +463,27 @@
         function revealCard(player) {
             const entry = state.currentEntry;
             const isLiar = player.type === "liar";
-            document.getElementById("role-display").textContent = isLiar ? "你是瞎话王，你的信息不完整" : "你拿到完整解释";
+            const isInterrogator = player.type === "interrogator";
+            document.getElementById("role-display").textContent = getRoleText(player.type);
             document.getElementById("word-display").textContent = entry.word;
             document.getElementById("pinyin-display").textContent = entry.pinyin || "";
             const explanation = document.getElementById("explanation-display");
-            explanation.textContent = isLiar ? "你只能看到这个词，没有解释。请根据字面意思和别人发言临场编。" : entry.explanation;
-            explanation.className = isLiar ? "explanation liar-note" : "explanation";
+            if (isInterrogator) {
+                explanation.textContent = "你不看解释。你负责质问所有人，最后指认谁是老实人。";
+                explanation.className = "explanation interrogator-note";
+            } else if (isLiar) {
+                explanation.textContent = "你只能看到这个词，没有解释。请根据字面意思和别人发言临场编。";
+                explanation.className = "explanation liar-note";
+            } else {
+                explanation.textContent = entry.explanation;
+                explanation.className = "explanation";
+            }
+        }
+
+        function getRoleText(type) {
+            if (type === "interrogator") return "你是想想 / 审讯者";
+            if (type === "knower") return "你是老实人，你拿到完整解释";
+            return "你是瞎话王，你的信息不完整";
         }
 
         function renderPlayerList() {
