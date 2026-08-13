@@ -300,11 +300,6 @@
             </div>
 
             <div class="glass-card">
-                <span class="section-title">选择词库</span>
-                <select id="category-select"></select>
-            </div>
-
-            <div class="glass-card">
                 <span class="section-title">玩家昵称</span>
                 <div class="names-grid" id="names-container"></div>
             </div>
@@ -364,13 +359,6 @@
         window.onload = init;
 
         function init() {
-            const select = document.getElementById("category-select");
-            Object.keys(wordBank).forEach((category) => {
-                const option = document.createElement("option");
-                option.value = category;
-                option.textContent = `${category}（${wordBank[category].length}）`;
-                select.appendChild(option);
-            });
             renderSetup();
         }
 
@@ -410,10 +398,9 @@
         }
 
         function startGame() {
-            const category = document.getElementById("category-select").value;
-            const entries = wordBank[category] || [];
+            const entries = getAllEntries();
             if (!entries.length) {
-                alert("词库为空，请换一个分类");
+                alert("词库为空，请先补充词库");
                 return;
             }
 
@@ -435,6 +422,13 @@
             state.flipped = false;
             showPage("deal");
             renderCard();
+        }
+
+        function getAllEntries() {
+            return Object.values(wordBank).reduce((all, entries) => {
+                if (Array.isArray(entries)) all.push(...entries);
+                return all;
+            }, []);
         }
 
         function renderCard() {
@@ -473,7 +467,7 @@
         function revealCard(player) {
             const entry = state.currentEntry;
             const isLiar = player.type === "liar";
-            document.getElementById("role-display").textContent = isLiar ? "你的信息不完整" : "你拿到完整解释";
+            document.getElementById("role-display").textContent = isLiar ? "你是瞎话王，你的信息不完整" : "你拿到完整解释";
             document.getElementById("word-display").textContent = entry.word;
             const explanation = document.getElementById("explanation-display");
             explanation.textContent = isLiar ? "你只能看到这个词，没有解释。请根据字面意思和别人发言临场编。" : entry.explanation;
