@@ -221,8 +221,16 @@
         .word {
             font-size: 2.4rem;
             font-weight: 900;
-            margin: 8px 0 14px;
+            margin: 8px 0 4px;
             word-break: break-all;
+        }
+
+        .pinyin {
+            margin-bottom: 14px;
+            color: var(--muted);
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
         }
 
         .explanation {
@@ -321,6 +329,7 @@
                     <div class="card-back">
                         <div id="role-display" class="hint"></div>
                         <div id="word-display" class="word"></div>
+                        <div id="pinyin-display" class="pinyin"></div>
                         <div id="explanation-display" class="explanation"></div>
                         <p class="hint" style="margin-top:22px;">再次点击隐藏并传给下一位</p>
                     </div>
@@ -349,7 +358,7 @@
 
         const state = {
             total: 6,
-            liars: 1,
+            liars: getRecommendedLiars(6),
             players: [],
             currentIdx: 0,
             flipped: false,
@@ -366,7 +375,7 @@
             const next = state.total + delta;
             if (next < 3 || next > 20) return;
             state.total = next;
-            if (state.liars >= state.total) state.liars = state.total - 1;
+            state.liars = getRecommendedLiars(next);
             renderSetup();
         }
 
@@ -375,6 +384,13 @@
             if (next < 1 || next >= state.total) return;
             state.liars = next;
             renderSetup();
+        }
+
+        function getRecommendedLiars(total) {
+            if (total === 3) return 2;
+            if (total <= 6) return 1;
+            if (total <= 10) return 2;
+            return 3;
         }
 
         function renderSetup() {
@@ -469,6 +485,7 @@
             const isLiar = player.type === "liar";
             document.getElementById("role-display").textContent = isLiar ? "你是瞎话王，你的信息不完整" : "你拿到完整解释";
             document.getElementById("word-display").textContent = entry.word;
+            document.getElementById("pinyin-display").textContent = entry.pinyin || "";
             const explanation = document.getElementById("explanation-display");
             explanation.textContent = isLiar ? "你只能看到这个词，没有解释。请根据字面意思和别人发言临场编。" : entry.explanation;
             explanation.className = isLiar ? "explanation liar-note" : "explanation";
