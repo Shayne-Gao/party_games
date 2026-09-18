@@ -131,6 +131,22 @@
             box-shadow: 0 0 0 3px rgba(142, 68, 173, 0.1);
         }
 
+        .rule-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+        }
+
+        .rule-check input {
+            width: auto;
+            transform: scale(1.15);
+        }
+
+        .rule-panel {
+            margin-top: 12px;
+        }
+
         .names-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -351,6 +367,17 @@
                     <span class="role-tag role-knower">老实人: 1</span>
                     <span class="role-tag role-liar">瞎话王: <span id="disp-liars">1</span></span>
                 </div>
+                <div class="config-row" style="margin-top:12px;">
+                    <label class="rule-check" for="rotation-mode">
+                        <input id="rotation-mode" type="checkbox" onchange="renderSetup()">
+                        轮抽审讯者：本轮审讯者不参与抽卡
+                    </label>
+                </div>
+                <div class="rule-panel" id="rotation-panel" style="display:none;">
+                    <label for="interrogator-select" class="section-title">本轮审讯者</label>
+                    <select id="interrogator-select"></select>
+                    <p class="hint">开启后，指定的审讯者不翻牌；剩下玩家抽 1 个老实人，其余都是瞎话王。</p>
+                </div>
             </div>
 
             <div class="glass-card">
@@ -412,6 +439,7 @@
         const state = {
             total: 6,
             players: [],
+            dealPlayers: [],
             currentIdx: 0,
             flipped: false,
             currentEntry: null,
@@ -442,10 +470,31 @@
                 input.id = `name-${index}`;
                 input.value = `${index + 1}号`;
                 input.maxLength = 16;
+                input.addEventListener("input", renderInterrogatorSelect);
                 container.appendChild(input);
             }
             while (container.children.length > state.total) {
                 container.removeChild(container.lastChild);
+            }
+            renderInterrogatorSelect();
+        }
+
+        function renderInterrogatorSelect() {
+            const rotationMode = document.getElementById("rotation-mode").checked;
+            const panel = document.getElementById("rotation-panel");
+            const select = document.getElementById("interrogator-select");
+            const previousValue = select.value;
+            panel.style.display = rotationMode ? "block" : "none";
+            select.innerHTML = "";
+            for (let i = 0; i < state.total; i += 1) {
+                const input = document.getElementById(`name-${i}`);
+                const option = document.createElement("option");
+                option.value = String(i);
+                option.textContent = input && input.value.trim() ? input.value.trim() : `${i + 1}号`;
+                select.appendChild(option);
+            }
+            if (previousValue && Number(previousValue) < state.total) {
+                select.value = previousValue;
             }
         }
 
@@ -457,23 +506,36 @@
             }
 
             state.currentEntry = entries[Math.floor(Math.random() * entries.length)];
-            const roles = [];
-            roles.push({ type: "interrogator" });
-            roles.push({ type: "knower" });
-            for (let i = 0; i < state.total - 2; i += 1) {
-                roles.push({ type: "liar" });
-            }
-            shuffleInPlace(roles);
-
-            state.players = roles.map((role, index) => ({
-                name: document.getElementById(`name-${index}`).value.trim() || `${index + 1}号`,
-                type: role.type
-            }));
+            const rotationMode = document.getElementById("rotation-mode").checked;
+            const interrogatorIndex = Number(document.getElementById("interrogator-select").value || 0);
+            state.players = buildPlayers(rotationMode, interrogatorIndex);
+            state.dealPlayers = rotationMode ? state.players.filter((player) => player.type !== "interrogator") : state.players;
             state.currentIdx = 0;
             state.flipped = false;
             state.answerVisible = false;
             showPage("deal");
             renderCard();
+        }
+
+        function buildPlayers(rotationMode, interrogatorIndex) {
+            const names = Array.from({ length: state.total }, (_, index) => {
+                return document.getElementById(`name-${index}`).value.trim() || `${index + 1}号`;
+            });
+
+            if (!rotationMode) {
+                const roles = [{ type: "interrogator" }, { type: "knower" }];
+                for (let i = 0; i < state.total - 2; i += 1) roles.push({ type: "liar" });
+                shuffleInPlace(roles);
+                return roles.map((role, index) => ({ name: names[index], type: role.type }));
+            }
+
+            const drawRoles = [{ type: "knower" }];
+            for (let i = 0; i < state.total - 2; i += 1) drawRoles.push({ type: "liar" });
+            shuffleInPlace(drawRoles);
+            return names.map((name, index) => {
+                if (index === interrogatorIndex) return { name, type: "interrogator" };
+                return { name, type: drawRoles.shift().type };
+            });
         }
 
         function getAllEntries() {
@@ -484,7 +546,7 @@
         }
 
         function renderCard() {
-            const player = state.players[state.currentIdx];
+            const player = state.dealPlayers[state.currentIdx];
             const card = document.getElementById("card-inner");
             card.classList.remove("flipped");
             document.getElementById("player-name-display").textContent = player.name;
@@ -494,7 +556,7 @@
 
         function handleCardTap() {
             const card = document.getElementById("card-inner");
-            const player = state.players[state.currentIdx];
+            const player = state.dealPlayers[state.currentIdx];
             if (!state.flipped) {
                 revealCard(player);
                 card.classList.add("flipped");
@@ -507,7 +569,7 @@
             document.getElementById("front-sub").textContent = "已隐藏，传给下一位";
             setTimeout(() => {
                 state.currentIdx += 1;
-                if (state.currentIdx < state.players.length) {
+                if (state.currentIdx < state.dealPlayers.length) {
                     renderCard();
                 } else {
                     showPage("game");
@@ -572,6 +634,7 @@
 
         function softReset() {
             state.players = [];
+            state.dealPlayers = [];
             state.currentEntry = null;
             state.currentIdx = 0;
             state.flipped = false;
