@@ -316,6 +316,13 @@
             font-weight: 700;
         }
 
+        .answer-hidden {
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.6;
+            font-weight: 700;
+        }
+
         @media (max-width: 420px) {
             .app-container { padding: 16px 12px; }
             .names-grid, .player-list { grid-template-columns: 1fr; }
@@ -386,9 +393,10 @@
             </div>
             <div class="glass-card answer-card">
                 <span class="section-title">本局正式解释</span>
-                <div id="answer-word" class="answer-word"></div>
-                <div id="answer-pinyin" class="answer-pinyin"></div>
-                <div id="answer-explanation" class="answer-explanation"></div>
+                <div id="answer-content">
+                    <div class="answer-hidden">审讯者完成指认后，再点击按钮查看本局正式解释。</div>
+                </div>
+                <button class="btn" id="answer-toggle-btn" onclick="showAnswer()">查看正式解释</button>
             </div>
             <div class="glass-card">
                 <span class="section-title">玩家列表</span>
@@ -406,7 +414,8 @@
             players: [],
             currentIdx: 0,
             flipped: false,
-            currentEntry: null
+            currentEntry: null,
+            answerVisible: false
         };
 
         window.onload = init;
@@ -462,6 +471,7 @@
             }));
             state.currentIdx = 0;
             state.flipped = false;
+            state.answerVisible = false;
             showPage("deal");
             renderCard();
         }
@@ -540,9 +550,24 @@
 
         function renderAnswer() {
             const entry = state.currentEntry || {};
-            document.getElementById("answer-word").textContent = entry.word || "";
-            document.getElementById("answer-pinyin").textContent = entry.pinyin || "";
-            document.getElementById("answer-explanation").textContent = entry.explanation || "";
+            const content = document.getElementById("answer-content");
+            const button = document.getElementById("answer-toggle-btn");
+            if (!state.answerVisible) {
+                content.innerHTML = '<div class="answer-hidden">审讯者完成指认后，再点击按钮查看本局正式解释。</div>';
+                button.style.display = "block";
+                return;
+            }
+            content.innerHTML = `
+                <div class="answer-word">${escapeHtml(entry.word || "")}</div>
+                <div class="answer-pinyin">${escapeHtml(entry.pinyin || "")}</div>
+                <div class="answer-explanation">${escapeHtml(entry.explanation || "")}</div>
+            `;
+            button.style.display = "none";
+        }
+
+        function showAnswer() {
+            state.answerVisible = true;
+            renderAnswer();
         }
 
         function softReset() {
@@ -550,6 +575,7 @@
             state.currentEntry = null;
             state.currentIdx = 0;
             state.flipped = false;
+            state.answerVisible = false;
             showPage("setup");
         }
 
