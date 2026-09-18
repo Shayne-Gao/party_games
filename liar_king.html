@@ -253,6 +253,19 @@
         .interrogator-note {
             color: #2c3e50;
             background: #eef1ff;
+            border: 2px solid #4c63d2;
+        }
+
+        .interrogator-badge {
+            display: inline-block;
+            margin-bottom: 10px;
+            padding: 9px 14px;
+            border-radius: 999px;
+            color: #fff;
+            background: linear-gradient(135deg, #34495e, #4c63d2);
+            font-size: 1.05rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
         }
 
         .hint {
@@ -276,6 +289,33 @@
             font-weight: 800;
         }
 
+        .answer-card {
+            border: 2px solid rgba(142, 68, 173, 0.18);
+            background: linear-gradient(180deg, #fff, #fbf6ff);
+        }
+
+        .answer-word {
+            margin: 8px 0 2px;
+            font-size: 2rem;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .answer-pinyin {
+            margin-bottom: 12px;
+            color: var(--muted);
+            text-align: center;
+            font-weight: 800;
+        }
+
+        .answer-explanation {
+            padding: 14px;
+            border-radius: 15px;
+            background: #f7f0fb;
+            line-height: 1.7;
+            font-weight: 700;
+        }
+
         @media (max-width: 420px) {
             .app-container { padding: 16px 12px; }
             .names-grid, .player-list { grid-template-columns: 1fr; }
@@ -287,7 +327,7 @@
         <div id="page-setup" class="page active">
             <a class="top-link" href="./index.html">← 返回游戏目录</a>
             <h1>瞎话王</h1>
-            <p class="subtitle">每局 1 个想想负责质问和指认，1 个老实人知道解释，其余人都是瞎话王。</p>
+            <p class="subtitle">每局 1 个审讯者负责质问和指认，1 个老实人知道解释，其余人都是瞎话王。</p>
 
             <div class="glass-card">
                 <span class="section-title">人数配置</span>
@@ -300,7 +340,7 @@
                     </div>
                 </div>
                 <div class="role-bar">
-                    <span class="role-tag role-interrogator">想想: 1</span>
+                    <span class="role-tag role-interrogator">审讯者: 1</span>
                     <span class="role-tag role-knower">老实人: 1</span>
                     <span class="role-tag role-liar">瞎话王: <span id="disp-liars">1</span></span>
                 </div>
@@ -341,8 +381,14 @@
             <div class="glass-card">
                 <span class="section-title">玩法提示</span>
                 <p class="hint">
-                    想想负责提问、吐槽和控场，但不看解释。所有非想想玩家都要解释这个词；老实人按真解释说，瞎话王根据词语和别人发言临场编。最后想想指认谁是老实人。
+                    审讯者负责提问、吐槽和控场，但不看解释。所有非审讯者玩家都要解释这个词；老实人按真解释说，瞎话王根据词语和别人发言临场编。最后审讯者指认谁是老实人。
                 </p>
+            </div>
+            <div class="glass-card answer-card">
+                <span class="section-title">本局正式解释</span>
+                <div id="answer-word" class="answer-word"></div>
+                <div id="answer-pinyin" class="answer-pinyin"></div>
+                <div id="answer-explanation" class="answer-explanation"></div>
             </div>
             <div class="glass-card">
                 <span class="section-title">玩家列表</span>
@@ -464,12 +510,12 @@
             const entry = state.currentEntry;
             const isLiar = player.type === "liar";
             const isInterrogator = player.type === "interrogator";
-            document.getElementById("role-display").textContent = getRoleText(player.type);
+            document.getElementById("role-display").innerHTML = getRoleHtml(player.type);
             document.getElementById("word-display").textContent = entry.word;
             document.getElementById("pinyin-display").textContent = entry.pinyin || "";
             const explanation = document.getElementById("explanation-display");
             if (isInterrogator) {
-                explanation.textContent = "你不看解释。你负责质问所有人，最后指认谁是老实人。";
+                explanation.textContent = "你是本局审讯者，不看解释。你负责质问所有人，最后指认谁是老实人。";
                 explanation.className = "explanation interrogator-note";
             } else if (isLiar) {
                 explanation.textContent = "你只能看到这个词，没有解释。请根据字面意思和别人发言临场编。";
@@ -480,15 +526,23 @@
             }
         }
 
-        function getRoleText(type) {
-            if (type === "interrogator") return "你是想想 / 审讯者";
+        function getRoleHtml(type) {
+            if (type === "interrogator") return '<span class="interrogator-badge">你是审讯者</span>';
             if (type === "knower") return "你是老实人，你拿到完整解释";
             return "你是瞎话王，你的信息不完整";
         }
 
         function renderPlayerList() {
+            renderAnswer();
             const list = document.getElementById("player-list");
             list.innerHTML = state.players.map((player) => `<div class="player-chip">${escapeHtml(player.name)}</div>`).join("");
+        }
+
+        function renderAnswer() {
+            const entry = state.currentEntry || {};
+            document.getElementById("answer-word").textContent = entry.word || "";
+            document.getElementById("answer-pinyin").textContent = entry.pinyin || "";
+            document.getElementById("answer-explanation").textContent = entry.explanation || "";
         }
 
         function softReset() {
