@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>截码战 · 线下队伍版</title>
+    <script src="./decrypto_word_bank.js"></script>
+    <style>
+        :root { color-scheme: dark; --bg: #0b1411; --panel: #14231d; --text: #f2f5ed; --muted: #a4b2a8; --accent: #e2c68c; --line: #2a3b32; --win: #94d8b3; --loss: #edaba2; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: radial-gradient(ellipse at 80% 0, #26392b 0, transparent 55%), var(--bg); color: var(--text); font-family: system-ui, -apple-system, "PingFang SC", sans-serif; }
+        main { max-width: 680px; margin: auto; padding: 28px 20px 48px; }
+        a { color: var(--muted); text-decoration: none; font-size: .875rem; }
+        h1 { margin: 12px 0 8px; font-size: clamp(2rem, 8vw, 3rem); letter-spacing: .08em; }
+        h2 { font-size: 1.1rem; margin: 0; }
+        p { line-height: 1.65; font-size: .9rem; }
+        .hero { padding: 28px 0 8px; }
+        .eyebrow { color: var(--accent); font-size: .7rem; font-weight: 700; letter-spacing: .22em; }
+        .hero p { margin: 0 0 12px; }
+        .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .round-badge { color: var(--accent); background: #e2c68c10; border: 1px solid #e2c68c30; padding: 6px 10px; border-radius: 8px; font-size: .8rem; white-space: nowrap; }
+        .muted { color: var(--muted); }
+        summary { cursor: pointer; color: var(--accent); padding: 12px 0; }
+        section { background: linear-gradient(145deg, #192a22, var(--panel)); border: 1px solid var(--line); border-radius: 22px; padding: 24px; margin-top: 16px; box-shadow: 0 12px 32px #00000018; }
+        button { font: inherit; font-size: .9rem; font-weight: 650; cursor: pointer; border: 1px solid #3d5144; border-radius: 11px; padding: 13px 16px; background: #243a2e; color: var(--text); min-height: 48px; transition: background .15s, border-color .15s; }
+        button:hover:not(:disabled) { background: #304c3c; border-color: #7c927f; }
+        button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+        button:disabled { opacity: .45; cursor: not-allowed; }
+        .primary { background: linear-gradient(120deg, #eed6a7, #d5b474); color: #1d281f; border-color: transparent; width: 100%; }
+        .primary:hover:not(:disabled) { background: #f1daae; border-color: transparent; }
+        .code-recheck { background: transparent; color: var(--muted); padding: 10px 12px; min-height: 44px; font-size: .875rem; font-weight: 500; }
+        .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        .actions button { flex: 1; }
+        .secondary { background: transparent; color: var(--muted); }
+        details { margin-top: 20px; border-top: 1px solid var(--line); font-size: .875rem; }
+        .words { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .word { padding: 20px; background: linear-gradient(135deg, #21382a, #1a2c22); border: 1px solid #3b4e3c; border-radius: 14px; font-size: clamp(1.4rem, 5vw, 2rem); font-weight: 750; overflow-wrap: anywhere; letter-spacing: .06em; }
+        .number { display: block; width: 26px; height: 26px; line-height: 26px; text-align: center; background: #e2c68c18; border-radius: 7px; font-size: .8rem; color: var(--accent); margin-bottom: 18px; }
+        .code, .code-words { display: grid; grid-template-columns: minmax(0, 1fr) .3fr minmax(0, 1fr) .3fr minmax(0, 1fr); text-align: center; }
+        .code { font-size: clamp(3rem, 13vw, 5rem); font-weight: 900; margin: 24px 0 6px; color: var(--accent); }
+        .code-words { margin-bottom: 24px; font-size: clamp(1rem, 4vw, 1.4rem); font-weight: 700; overflow-wrap: anywhere; }
+        .scores { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .score-card { border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: #0c181240; }
+        .score-card.loss { --score-color: var(--loss); border-color: #edaba22b; }
+        .score-card.win { --score-color: var(--win); border-color: #94d8b32b; }
+        .score-title { font-size: .85rem; color: var(--score-color); font-weight: 650; }
+        .score-value { display: flex; align-items: baseline; gap: 6px; margin: 10px 0; }
+        .score-value strong { font-size: 2.3rem; font-weight: 700; line-height: 1; color: var(--score-color); font-variant-numeric: tabular-nums; }
+        .score-value span { color: var(--muted); font-size: .85rem; }
+        .score-rule { margin: 10px 0 0; font-size: .78rem; color: var(--muted); }
+        .score-progress { display: flex; gap: 6px; }
+        .score-progress span { flex: 1; height: 5px; border-radius: 4px; background: #ffffff12; }
+        .score-progress .filled { background: var(--score-color); }
+        .score-stat { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 4px 0; color: var(--muted); font-size: .85rem; }
+        .score-stat strong { color: var(--text); font-size: 1.1rem; margin-right: 6px; }
+        .score-stat small { font-size: .75rem; }
+        .flow { list-style: none; padding: 0; margin: 0; counter-reset: step; }
+        .flow li { position: relative; padding: 0 0 20px 40px; counter-increment: step; font-size: .85rem; line-height: 1.6; }
+        .flow li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 26px; height: 26px; line-height: 26px; text-align: center; border: 1px solid #e2c68c40; background: #24372b; color: var(--accent); border-radius: 50%; font-size: .75rem; font-weight: 700; }
+        .flow li:not(:last-child)::after { content: ""; position: absolute; left: 12px; top: 30px; bottom: 4px; width: 1px; background: var(--line); }
+        .flow li:last-child { padding-bottom: 0; }
+        .flow strong { display: block; font-weight: 650; }
+        .flow small { display: block; color: var(--muted); font-size: .78rem; }
+        .result { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--line); padding: 12px 0; }
+        .result > span { font-size: .85rem; }
+        .result small { display: block; margin-top: 4px; line-height: 1.5; font-size: .75rem; }
+        .result button { min-width: 110px; flex-shrink: 0; }
+        #notice { color: #ffd0a1; }
+        #notice:empty, #outcome:empty { display: none; }
+        #outcome { color: var(--accent); font-weight: 650; padding: 12px 14px; border: 1px solid #e2c68c40; background: #e2c68c0a; border-radius: 10px; }
+        dialog { width: min(400px, calc(100% - 32px)); padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); color: var(--text); }
+        dialog::backdrop { background: rgba(0, 0, 0, .8); }
+        @media (max-width: 380px) { main { padding: 20px 12px 36px; } section { padding: 18px; } .word { padding: 16px; } .score-card { padding: 12px; } .result button { min-width: 100px; padding: 10px; } }
+        @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+<main>
+    <a href="./index.html">返回游戏目录</a>
+    <header class="hero">
+        <div class="eyebrow">DECRYPTO / 线下队伍版</div>
+        <h1>截码战</h1>
+        <p class="muted">本队共用一部手机，对方队伍用自己的手机。</p>
+    </header>
+    <p id="notice" role="alert"></p>
+    <section id="setup">
+        <h2>准备好本队手机</h2>
+        <p>本队共看 4 个固定词，只有加密者看密码。不要让对方看到本队词板。</p>
+        <button class="primary" onclick="startGame()">开始本队游戏</button>
+    </section>
+    <div id="game" hidden>
+        <section id="board">
+            <div class="section-head">
+                <h2>本队词板</h2>
+                <span class="round-badge">第 <span id="round"></span> / 8 轮</span>
+            </div>
+            <div id="words" class="words"></div>
+            <p id="code-hint" class="muted"></p>
+            <button id="code-button" class="primary" onclick="revealCode()"></button>
+        </section>
+        <section id="secret" hidden>
+            <h2>仅本轮加密者查看</h2>
+            <p class="muted">按密码顺序给出三条线索。看完先隐藏，再把手机交还本队。</p>
+            <div id="code" class="code"></div>
+            <div id="code-words" class="code-words"></div>
+            <button class="primary" onclick="hideCode()">隐藏密码，返回词板</button>
+        </section>
+        <div id="public-controls">
+            <section aria-labelledby="flow-title">
+                <div class="section-head"><h2 id="flow-title">一轮怎么走</h2><span class="round-badge">以 A 队出题为例</span></div>
+                <ol class="flow">
+                    <li><strong>两队各看自己的 4 个词</strong><small>本队共享词板，不能让对方看到；整局词语不变。</small></li>
+                    <li><strong>两队加密者各自私密抽密码</strong><small>看完隐藏，再按三个数字的顺序准备三条线索。</small></li>
+                    <li><strong>A 队加密者公开说三条线索</strong><small>两队都听到，分别讨论并写下猜测；A 队加密者不参与本队讨论。</small></li>
+                    <li><strong>B 队先公布拦截猜测</strong><small>第一轮跳过这一步，只听线索并记录。</small></li>
+                    <li><strong>A 队再公布接收猜测</strong><small>本队队友说出自己认为的三位密码。</small></li>
+                    <li><strong>A 队加密者揭晓密码，核对记分</strong><small>B 队猜对加 1 个截获；A 队猜错加 1 个失误。线下记录线索与正确数字。</small></li>
+                    <li><strong>交换两队，B 队出题，重复上述流程</strong><small>两队都完成才算一轮结束：达标或满 8 轮则结算，否则换加密者开始下一轮。</small></li>
+                </ol>
+            </section>
+            <section>
+                <div class="section-head"><h2>本队记分</h2><span class="muted" style="font-size:.75rem;">累计标记</span></div>
+                <div class="scores">
+                    <div class="score-card loss">
+                        <div class="score-title">传递失败</div>
+                        <div class="score-value"><strong id="failure-count">0</strong><span>/ 2 次</span></div>
+                        <div id="failure-progress" class="score-progress" role="img"></div>
+                        <p class="score-rule">累计 2 次，达到失败条件</p>
+                    </div>
+                    <div class="score-card win">
+                        <div class="score-title">破译成功</div>
+                        <div class="score-value"><strong id="intercept-count">0</strong><span>/ 2 次</span></div>
+                        <div id="intercept-progress" class="score-progress" role="img"></div>
+                        <p class="score-rule">累计 2 次，达到获胜条件</p>
+                    </div>
+                    <div class="score-stat">
+                        <span>传递成功 <strong id="success-count">0</strong>次</span>
+                        <small>仅作统计，不决定胜负</small>
+                    </div>
+                </div>
+                <p class="muted" style="font-size:.78rem;">达到任一条件后，本轮结束时判定胜负；同轮双方达标在线下处理。</p>
+                <p id="outcome" aria-live="polite"></p>
+                <p class="muted">核对后记分，再次点击可撤销。</p>
+                <div class="result"><span>本队队友猜中己方密码</span><button id="success-button" onclick="setTransmission('success')"></button></div>
+                <div class="result"><span>本队队友未猜中己方密码</span><button id="failure-button" onclick="setTransmission('failure')"></button></div>
+                <div class="result">
+                    <span>本队猜中对方密码<br><small id="intercept-hint" class="muted"></small></span>
+                    <button id="intercept-button" aria-describedby="intercept-hint" onclick="toggleIntercept()"></button>
+                </div>
+                <p id="score-hint" class="muted"></p>
+            </section>
+            <div class="actions">
+                <button id="next-button" onclick="nextRound()">下一轮，换加密者</button>
+                <button class="secondary" onclick="restartGame()">重开整局</button>
+            </div>
+            <button id="finish-button" class="code-recheck" onclick="requestSettlement()">对方已达标？本轮结束后结算</button>
+            <section id="settlement" hidden aria-labelledby="settlement-title">
+                <h2 id="settlement-title">本局结算</h2>
+                <p>本队净分：<strong id="net-score"></strong>（截获数 − 失误数）</p>
+                <p>请对照双方记分：2 个截获获胜，2 个失误失败。必须完成两队本轮行动后判断。</p>
+                <p>若同一队同时有 2 个截获和 2 个失误、双方同轮都达到 2 个截获或都达到 2 个失误，或第 8 轮无人达标：比较净分，高者获胜。</p>
+                <p>净分相同，各队猜对方的 4 个关键词，猜对更多者获胜；仍相同则共享胜利。</p>
+                <button class="secondary" onclick="resumeScoring()">记分有误？返回修正</button>
+            </section>
+            <details>
+                <summary>查看玩法与记分规则</summary>
+                <p>第一轮只猜本队密码；对方听线索、记录数字对应关系，不进行破译。从第二轮开始，对方先公布猜测，本队再公布猜测，最后加密者揭晓密码。</p>
+                <p>一轮包含两队各传一次密码，双方都完成后再切换轮次。加密者按座位顺序轮换，看完密码隐藏，再把手机放回本队。无需隔开座位，但加密者不能参与本队猜测、补充线索或暗示答案。</p>
+                <p>线索须让两队都听到，不能用私密暗号；请线下记录每轮线索与对应数字，供后续破译使用。</p>
+                <p>2 次破译成功达到获胜条件，2 次传递失败达到失败条件；传递成功只作统计，破译失败不扣分。最多 8 轮，特殊终局按净分及猜关键词结算。</p>
+                <p class="muted">本队词板整局不变；双方独立抽词，可能重复。</p>
+            </details>
+        </div>
+    </div>
+</main>
+<dialog id="code-confirmation" aria-labelledby="confirmation-title" aria-describedby="confirmation-description">
+    <h2 id="confirmation-title">确认再次查看密码？</h2>
+    <p id="confirmation-description">本轮密码已经查看过。请确认只有加密者在看手机，或已进入核对阶段。</p>
+    <div class="actions">
+        <button autofocus onclick="cancelCodeView()">取消</button>
+        <button class="primary" onclick="confirmCodeView()">确认查看</button>
+    </div>
+</dialog>
+<dialog id="settlement-confirmation" aria-labelledby="end-title">
+    <h2 id="end-title">双方本轮都完成了吗？</h2>
+    <p>请先完成两队各一次传递、破译、揭晓和记分。即使有人达标，也不能跳过另一队。</p>
+    <div class="actions">
+        <button autofocus onclick="document.getElementById('settlement-confirmation').close()">还没完成</button>
+        <button class="primary" onclick="finishGame()">已完成，查看结算</button>
+    </div>
+</dialog>
+<script>
+    const STORAGE_KEY = "decrypto-offline:v1";
+    let game = null;
+    let secretVisible = false;
+    let codeConfirmationRound = null;
+
+    function shuffle(values) {
+        const result = [...values];
+        for (let i = result.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [result[i], result[j]] = [result[j], result[i]];
+        }
+        return result;
+    }
+
+    function emptyRound() {
+        return { code: null, transmission: null, intercepted: false };
+    }
+
+    function isValidGame(value) {
+        return value && value.version === 1 && Array.isArray(value.words) &&
+            value.words.length === 4 && value.words.every(word => typeof word === "string" && word.length > 0) &&
+            new Set(value.words).size === 4 && (value.ended === undefined || typeof value.ended === "boolean") &&
+            Array.isArray(value.rounds) && value.rounds.length > 0 &&
+            value.rounds.every((round, index) => round &&
+                (round.code === null || (typeof round.code === "string" && /^[1-4]-[1-4]-[1-4]$/.test(round.code) && new Set(round.code.split("-")).size === 3)) &&
+                [null, "success", "failure"].includes(round.transmission) &&
+                typeof round.intercepted === "boolean" && (index !== 0 || !round.intercepted));
+    }
+
+    function restore() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            const value = JSON.parse(raw);
+            if (!isValidGame(value)) throw new Error("invalid saved game");
+            return value;
+        } catch (error) {
+            document.getElementById("notice").textContent = "无法恢复本局存档。可以尝试重新开局；若浏览器禁止存储，请先允许本站保存数据。";
+            return null;
+        }
+    }
+
+    // Persist before updating the screen so a failed save cannot silently lose a code.
+    function save(next) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+            game = next;
+            document.getElementById("notice").textContent = "";
+            return true;
+        } catch (error) {
+            document.getElementById("notice").textContent = "保存失败，操作未生效。请允许浏览器保存本站数据后重试。";
+            return false;
+        }
+    }
+
+    function startGame() {
+        const pool = [...new Set(window.DECRYPTO_WORD_BANK || [])];
+        if (pool.length < 4) {
+            document.getElementById("notice").textContent = "词库不足或未加载，请刷新后重试。";
+            return;
+        }
+        if (save({ version: 1, words: shuffle(pool).slice(0, 4), rounds: [emptyRound()] })) {
+            secretVisible = false;
+            render();
+        }
+    }
+
+    function currentRound() { return game.rounds[game.rounds.length - 1]; }
+
+    function updateRound(change) {
+        const next = JSON.parse(JSON.stringify(game));
+        change(next.rounds[next.rounds.length - 1]);
+        if (!save(next)) return false;
+        render();
+        return true;
+    }
+
+    function revealCode() {
+        if (!game || game.ended || secretVisible) return;
+        if (currentRound().code) {
+            const dialog = document.getElementById("code-confirmation");
+            if (!dialog.open) {
+                codeConfirmationRound = currentRound();
+                dialog.showModal();
+            }
+            return;
+        }
+        if (!currentRound().code && !updateRound(round => { round.code = shuffle([1, 2, 3, 4]).slice(0, 3).join("-"); })) return;
+        secretVisible = true;
+        render();
+    }
+
+    function cancelCodeView() {
+        codeConfirmationRound = null;
+        const dialog = document.getElementById("code-confirmation");
+        if (dialog.open) dialog.close();
+    }
+
+    function confirmCodeView() {
+        const dialog = document.getElementById("code-confirmation");
+        const allowed = dialog.open && game && !game.ended && codeConfirmationRound === currentRound();
+        cancelCodeView();
+        if (!allowed) return;
+        secretVisible = true;
+        render();
+    }
+
+    function hideCode() { cancelCodeView(); secretVisible = false; render(); }
+
+    function setTransmission(result) {
+        if (!game || game.ended || !currentRound().code) return;
+        updateRound(round => { round.transmission = round.transmission === result ? null : result; });
+    }
+
+    function toggleIntercept() {
+        if (!game || game.ended || game.rounds.length === 1) return;
+        updateRound(round => { round.intercepted = !round.intercepted; });
+    }
+
+    function nextRound() {
+        if (!game || game.ended) return;
+        if (mustSettle()) { requestSettlement(); return; }
+        if (!currentRound().code || !currentRound().transmission) return;
+        if (!confirm("双方本轮行动、核对与记分都完成了吗？若对方已达标，请取消并点击结算；否则进入下一轮，把手机交给下一位加密者。")) return;
+        const next = JSON.parse(JSON.stringify(game));
+        next.rounds.push(emptyRound());
+        if (save(next)) { secretVisible = false; render(); }
+    }
+
+    function mustSettle() {
+        return game.rounds.length >= 8 ||
+            game.rounds.filter(round => round.intercepted).length >= 2 ||
+            game.rounds.filter(round => round.transmission === "failure").length >= 2;
+    }
+
+    function requestSettlement() {
+        if (!game || game.ended) return;
+        cancelCodeView();
+        secretVisible = false;
+        render();
+        const dialog = document.getElementById("settlement-confirmation");
+        if (!dialog.open) dialog.showModal();
+    }
+
+    function finishGame() {
+        const dialog = document.getElementById("settlement-confirmation");
+        if (!game || !dialog.open) return;
+        const next = JSON.parse(JSON.stringify(game));
+        next.ended = true;
+        if (save(next)) { dialog.close(); hideCode(); }
+    }
+
+    function resumeScoring() {
+        if (!game || !game.ended) return;
+        const next = JSON.parse(JSON.stringify(game));
+        next.ended = false;
+        if (save(next)) render();
+    }
+
+    function restartGame() {
+        if (!confirm("重开整局？将清空所有记分，并重新随机生成本队的 4 个词。")) return;
+        startGame();
+    }
+
+    function renderProgress(id, count, label) {
+        const progress = document.getElementById(id);
+        progress.replaceChildren();
+        progress.setAttribute("aria-label", `${label} ${count} 次，目标 2 次`);
+        for (let i = 0; i < 2; i += 1) {
+            const marker = document.createElement("span");
+            marker.className = i < count ? "filled" : "";
+            progress.append(marker);
+        }
+    }
+
+    function render() {
+        if (codeConfirmationRound && (!game || codeConfirmationRound !== currentRound())) cancelCodeView();
+        document.getElementById("setup").hidden = !!game;
+        document.getElementById("game").hidden = !game;
+        document.getElementById("code").textContent = "";
+        document.getElementById("code-words").replaceChildren();
+        if (!game) return;
+        const round = currentRound();
+        document.getElementById("round").textContent = game.rounds.length;
+        const words = document.getElementById("words");
+        words.replaceChildren();
+        game.words.forEach((word, index) => {
+            const tile = document.createElement("div");
+            tile.className = "word";
+            const number = document.createElement("span");
+            number.className = "number";
+            number.textContent = index + 1;
+            tile.append(number, document.createTextNode(word));
+            words.append(tile);
+        });
+        document.getElementById("board").hidden = secretVisible;
+        document.getElementById("public-controls").hidden = secretVisible;
+        document.getElementById("secret").hidden = !secretVisible;
+        if (secretVisible) {
+            const code = document.getElementById("code");
+            code.replaceChildren();
+            for (const token of round.code) {
+                const digit = document.createElement("span");
+                digit.textContent = token;
+                code.append(digit);
+            }
+            round.code.split("-").forEach((digit, index) => {
+                const word = document.createElement("span");
+                word.style.gridColumn = String(index * 2 + 1);
+                word.textContent = game.words[Number(digit) - 1];
+                document.getElementById("code-words").append(word);
+            });
+        }
+        const codeButton = document.getElementById("code-button");
+        codeButton.textContent = round.code ? "再次查看密码" : "加密者抽取本轮密码";
+        codeButton.className = round.code ? "code-recheck" : "primary";
+        codeButton.disabled = !!game.ended;
+        document.getElementById("code-hint").textContent = game.ended ? "本局已进入结算，重开整局才会重新发词。" : round.code ? "本轮已查看。再次查看需确认，不会重抽。" : "按座位顺序换加密者，把手机交给下一位，再私密抽密码。";
+        const success = game.rounds.filter(item => item.transmission === "success").length;
+        const failure = game.rounds.filter(item => item.transmission === "failure").length;
+        const intercept = game.rounds.filter(item => item.intercepted).length;
+        document.getElementById("success-count").textContent = success;
+        document.getElementById("failure-count").textContent = failure;
+        document.getElementById("intercept-count").textContent = intercept;
+        renderProgress("failure-progress", failure, "传递失败");
+        renderProgress("intercept-progress", intercept, "破译成功");
+        const conditions = [];
+        if (intercept >= 2) conditions.push("本队已达到获胜条件（2 个截获标记）");
+        if (failure >= 2) conditions.push("本队已达到失败条件（2 个失误标记）");
+        document.getElementById("outcome").textContent = conditions.length ? conditions.join("；") + "。请完成双方本轮行动，再结算，不再开启下一轮。" : game.rounds.length >= 8 ? "已到第 8 轮，请完成双方行动后结算，不再开启下一轮。" : "";
+        document.getElementById("success-button").textContent = round.transmission === "success" ? "撤销成功" : "记录成功";
+        document.getElementById("failure-button").textContent = round.transmission === "failure" ? "撤销失败" : "记录失败";
+        document.getElementById("intercept-button").textContent = game.rounds.length === 1 ? "第二轮开放" : round.intercepted ? "撤销破译" : "记录破译";
+        ["success-button", "failure-button"].forEach(id => { document.getElementById(id).disabled = !!game.ended || !round.code; });
+        document.getElementById("next-button").disabled = !!game.ended || (!mustSettle() && (!round.code || !round.transmission));
+        document.getElementById("next-button").textContent = game.ended ? "本局已结束" : mustSettle() ? "本轮结束，查看结算" : "下一轮，换加密者";
+        document.getElementById("intercept-button").disabled = !!game.ended || game.rounds.length === 1;
+        document.getElementById("finish-button").hidden = !!game.ended;
+        document.getElementById("settlement").hidden = !game.ended;
+        document.getElementById("net-score").textContent = intercept - failure;
+        document.getElementById("intercept-hint").textContent = game.rounds.length === 1 ? "第一轮只猜本队密码，不破译对方。" : "对方先出题也可记，无需先抽本队密码。";
+        document.getElementById("score-hint").textContent = game.ended ? "记分已锁定；有误可返回修正。" : !round.code ? "本队抽密码并核对后，可记录传递结果。" : "传递成功与失败只能选一项，记录后才能进入下一轮。";
+    }
+
+    document.getElementById("code-confirmation").addEventListener("cancel", cancelCodeView);
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            document.getElementById("settlement-confirmation").close();
+            hideCode();
+        }
+    });
+    window.addEventListener("pagehide", hideCode);
+    window.addEventListener("storage", event => {
+        if (event.key === STORAGE_KEY || event.key === null) { game = restore(); secretVisible = false; render(); }
+    });
+    game = restore();
+    render();
+</script>
+</body>
+</html>
