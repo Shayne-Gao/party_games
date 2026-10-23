@@ -14,12 +14,6 @@
                 "clueLength": "2"
             },
             {
-                "left": "拿铁",
-                "right": "卡布",
-                "clue": "一种饮品",
-                "clueLength": "2"
-            },
-            {
                 "left": "汉堡",
                 "right": "薯条",
                 "clue": "一种快餐",
@@ -164,32 +158,8 @@
                 "clueLength": "2/3"
             },
             {
-                "left": "牛奶",
-                "right": "豆浆",
-                "clue": "一种食物",
-                "clueLength": "2"
-            },
-            {
-                "left": "葡萄",
-                "right": "提子",
-                "clue": "一种食物",
-                "clueLength": "2"
-            },
-            {
-                "left": "菠萝",
-                "right": "凤梨",
-                "clue": "一种食物",
-                "clueLength": "2"
-            },
-            {
                 "left": "烧烤",
                 "right": "油炸",
-                "clue": "一种食物",
-                "clueLength": "2"
-            },
-            {
-                "left": "咖啡",
-                "right": "拿铁",
                 "clue": "一种食物",
                 "clueLength": "2"
             },
@@ -208,8 +178,32 @@
             {
                 "left": "拿铁",
                 "right": "卡布奇诺",
-                "clue": "一种食物",
+                "clue": "一种饮品",
                 "clueLength": "2/4"
+            },
+            {
+                "left": "酸奶",
+                "right": "布丁",
+                "clue": "食品",
+                "clueLength": "2"
+            },
+            {
+                "left": "豆腐",
+                "right": "豆干",
+                "clue": "食材",
+                "clueLength": "2"
+            },
+            {
+                "left": "馄饨",
+                "right": "水饺",
+                "clue": "食物",
+                "clueLength": "2"
+            },
+            {
+                "left": "煎饼",
+                "right": "蛋饼",
+                "clue": "食物",
+                "clueLength": "2"
             }
         ],
         "数码科技": [
@@ -324,7 +318,7 @@
             {
                 "left": "中国移动",
                 "right": "中国联通",
-                "clue": "通讯品牌",
+                "clue": "品牌",
                 "clueLength": "4"
             },
             {
@@ -373,6 +367,24 @@
                 "left": "夸克",
                 "right": "搜狗",
                 "clue": "手机软件",
+                "clueLength": "2"
+            },
+            {
+                "left": "直播",
+                "right": "录播",
+                "clue": "网络相关",
+                "clueLength": "2"
+            },
+            {
+                "left": "截图",
+                "right": "拍照",
+                "clue": "手机功能",
+                "clueLength": "2"
+            },
+            {
+                "left": "点赞",
+                "right": "收藏",
+                "clue": "手机操作",
                 "clueLength": "2"
             }
         ],
@@ -441,7 +453,7 @@
                 "left": "钢笔",
                 "right": "圆珠笔",
                 "clue": "文具用品",
-                "clueLength": "2"
+                "clueLength": "2/3"
             },
             {
                 "left": "抹布",
@@ -482,7 +494,7 @@
             {
                 "left": "保安",
                 "right": "保镖",
-                "clue": "日常用品",
+                "clue": "职业",
                 "clueLength": "2"
             },
             {
@@ -506,7 +518,7 @@
             {
                 "left": "公交",
                 "right": "地铁",
-                "clue": "日常用品",
+                "clue": "交通工具",
                 "clueLength": "2"
             },
             {
@@ -528,18 +540,6 @@
                 "clueLength": "2"
             },
             {
-                "left": "口红",
-                "right": "唇膏",
-                "clue": "生活用品",
-                "clueLength": "2"
-            },
-            {
-                "left": "门卡",
-                "right": "钥匙",
-                "clue": "出门会带",
-                "clueLength": "2"
-            },
-            {
                 "left": "桌子",
                 "right": "椅子",
                 "clue": "家里常见",
@@ -549,12 +549,6 @@
                 "left": "毛衣",
                 "right": "卫衣",
                 "clue": "身上穿的",
-                "clueLength": "2"
-            },
-            {
-                "left": "扫帚",
-                "right": "拖把",
-                "clue": "打扫卫生",
                 "clueLength": "2"
             },
             {
@@ -568,15 +562,63 @@
                 "right": "吊灯",
                 "clue": "照明用的",
                 "clueLength": "2"
+            },
+            {
+                "left": "电饭煲",
+                "right": "高压锅",
+                "clue": "厨房用品",
+                "clueLength": "3"
+            },
+            {
+                "left": "沙发",
+                "right": "躺椅",
+                "clue": "家具",
+                "clueLength": "2"
+            },
+            {
+                "left": "香水",
+                "right": "香薰",
+                "clue": "生活用品",
+                "clueLength": "2"
+            },
+            {
+                "left": "洗发水",
+                "right": "沐浴露",
+                "clue": "日化用品",
+                "clueLength": "3"
+            },
+            {
+                "left": "洗衣液",
+                "right": "洗洁精",
+                "clue": "清洁用品",
+                "clueLength": "3"
+            },
+            {
+                "left": "近视镜",
+                "right": "太阳镜",
+                "clue": "随身用品",
+                "clueLength": "3"
+            },
+            {
+                "left": "超市",
+                "right": "菜场",
+                "clue": "生活场所",
+                "clueLength": "2"
+            },
+            {
+                "left": "医院",
+                "right": "药店",
+                "clue": "生活场所",
+                "clueLength": "2"
+            },
+            {
+                "left": "春联",
+                "right": "福字",
+                "clue": "节庆用品",
+                "clueLength": "2"
             }
         ],
         "职场风云": [
-            {
-                "left": "钉钉",
-                "right": "飞书",
-                "clue": "办公软件",
-                "clueLength": "2"
-            },
             {
                 "left": "加班",
                 "right": "团建",
@@ -641,12 +683,6 @@
                 "left": "周报",
                 "right": "日报",
                 "clue": "工作记录",
-                "clueLength": "2"
-            },
-            {
-                "left": "面试",
-                "right": "复试",
-                "clue": "找工作",
                 "clueLength": "2"
             },
             {
@@ -744,7 +780,7 @@
             {
                 "left": "暑假",
                 "right": "寒假",
-                "clue": "放假时间",
+                "clue": "校园生活",
                 "clueLength": "2"
             },
             {
@@ -838,18 +874,6 @@
                 "clueLength": "2"
             },
             {
-                "left": "雪糕",
-                "right": "冰棍",
-                "clue": "冷饮",
-                "clueLength": "2"
-            },
-            {
-                "left": "动画城",
-                "right": "大风车",
-                "clue": "电视节目",
-                "clueLength": "3"
-            },
-            {
                 "left": "口袋妖怪",
                 "right": "数码宝贝",
                 "clue": "童年动画",
@@ -926,7 +950,7 @@
             {
                 "left": "红牌",
                 "right": "黄牌",
-                "clue": "比赛判罚",
+                "clue": "体育相关",
                 "clueLength": "2"
             },
             {
@@ -938,7 +962,7 @@
             {
                 "left": "主场",
                 "right": "客场",
-                "clue": "比赛场合",
+                "clue": "体育相关",
                 "clueLength": "2"
             },
             {
@@ -1050,6 +1074,12 @@
                 "right": "黄河",
                 "clue": "国内大河",
                 "clueLength": "2"
+            },
+            {
+                "left": "酒店",
+                "right": "民宿",
+                "clue": "旅行相关",
+                "clueLength": "2"
             }
         ],
         "影视娱乐": [
@@ -1087,12 +1117,6 @@
                 "left": "粉丝",
                 "right": "水军",
                 "clue": "娱乐群体",
-                "clueLength": "2"
-            },
-            {
-                "left": "卧虎",
-                "right": "藏龙",
-                "clue": "武侠电影",
                 "clueLength": "2"
             },
             {
@@ -1250,6 +1274,24 @@
                 "right": "陈凯歌",
                 "clue": "导演",
                 "clueLength": "3"
+            },
+            {
+                "left": "电影",
+                "right": "话剧",
+                "clue": "娱乐相关",
+                "clueLength": "2"
+            },
+            {
+                "left": "相声",
+                "right": "小品",
+                "clue": "表演形式",
+                "clueLength": "2"
+            },
+            {
+                "left": "魔术",
+                "right": "杂技",
+                "clue": "表演形式",
+                "clueLength": "2"
             }
         ],
         "动物世界": [
@@ -1262,7 +1304,7 @@
             {
                 "left": "企鹅",
                 "right": "熊猫",
-                "clue": "只有两种颜色的动物",
+                "clue": "动物",
                 "clueLength": "2"
             },
             {
