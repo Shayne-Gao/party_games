@@ -67,6 +67,9 @@
         /* 字体大小微调，防止溢出 */
         #front-icon { font-size: 3rem; margin-bottom: 10px; }
         #word-val { font-size: 1.8rem; font-weight: bold; margin: 15px 0; line-height: 1.2; word-break: break-all; }
+        .lobby-link { display: block; margin: 0 auto; padding: 12px 18px; background: transparent; border: none; border-radius: 8px; color: #666; font-size: 0.85rem; cursor: pointer; }
+        .lobby-link:hover { background: #e9ebf0; }
+        .lobby-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
         /* 投票区 */
         .status-header { background: #2d3436; color: white; padding: 15px; border-radius: 15px; margin-bottom: 20px; cursor: pointer; position: relative; }
@@ -130,6 +133,7 @@
                 </div>
             </div>
         </div>
+        <button type="button" class="lobby-link" onclick="returnToLobby()">回到大厅</button>
     </div>
 
     <div id="page-3" class="page">
@@ -148,6 +152,7 @@
 <script>
 const library = window.PARTY_GAME_SHARED_WORD_BANK || {};
 let state = { total: 6, a:0, b:0, g:0, hasW: false, players: [], current: 0, flipped: false, stVisible: false };
+let flipTimer = null;
 
 // --- 随机洗牌算法 (Fisher-Yates) ---
 function shuffle(array) {
@@ -223,6 +228,7 @@ function updateCard() {
 }
 
 function handleFlip() {
+    if(flipTimer !== null || !state.players[state.current]) return;
     const inner = document.getElementById('card-inner');
     const p = state.players[state.current];
     if(!state.flipped) {
@@ -235,7 +241,8 @@ function handleFlip() {
         state.flipped = false;
         document.getElementById('front-icon').innerText = "✅";
         document.getElementById('front-tip').innerText = "已隐藏，传给下一位";
-        setTimeout(() => {
+        flipTimer = setTimeout(() => {
+            flipTimer = null;
             state.current++;
             if(state.current < state.players.length) updateCard();
             else { showPage(3); renderVote(); }
@@ -275,12 +282,24 @@ function updateStatus() {
     else if(a===0 || b===0) alert("💀 鬼获胜！一组好人已全灭");
 }
 
+function returnToLobby() {
+    if(confirm("回到大厅并中止本局？人数、词库分类和昵称会保留，再次开始会重新随机发牌。")) {
+        resetToSetup();
+    }
+}
+
 // --- 软重置功能：保留配置 ---
 function resetToSetup() {
+    // Returning during the hide animation must cancel the queued next player.
+    if(flipTimer !== null) clearTimeout(flipTimer);
+    flipTimer = null;
     state.current = 0;
     state.flipped = false;
     state.players = [];
     state.stVisible = false;
+    document.getElementById('card-inner').classList.remove('flipped');
+    document.getElementById('word-val').innerText = '';
+    document.getElementById('role-label').innerText = '';
     document.getElementById('st-content').style.display = 'none';
     document.getElementById('st-title').innerText = '📊 存活统计 (已隐藏)';
     document.getElementById('st-eye').innerText = '👁️‍🗨️';
