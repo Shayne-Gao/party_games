@@ -39,11 +39,27 @@
         .code, .code-words { display: grid; grid-template-columns: minmax(0, 1fr) .3fr minmax(0, 1fr) .3fr minmax(0, 1fr); text-align: center; }
         .code { font-size: clamp(3rem, 13vw, 5rem); font-weight: 900; margin: 24px 0 6px; color: var(--accent); }
         .code-words { margin-bottom: 24px; font-size: clamp(1rem, 4vw, 1.4rem); font-weight: 700; overflow-wrap: anywhere; }
-        .score-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); font-size: .9rem; }
-        .score-row small { display: block; color: var(--muted); font-size: .75rem; margin-top: 4px; }
-        .stepper { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .stepper button { width: 44px; min-height: 44px; padding: 0; font-size: 1.3rem; }
-        .stepper strong { width: 28px; text-align: center; font-size: 1.3rem; font-variant-numeric: tabular-nums; color: var(--accent); }
+        .token-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .token-card { padding: 12px; border: 1px solid #e2c68c28; background: #0b141180; border-radius: 12px; }
+        .token-card > span { font-size: .85rem; }
+        .token-card.success { color: var(--accent); }
+        .token-card small { color: var(--muted); font-size: .75rem; }
+        .token-card strong { display: block; font-size: 1.7rem; margin: 6px 0; font-variant-numeric: tabular-nums; }
+        .token-card.loss { color: var(--loss); --token: var(--loss); }
+        .token-card.win { color: var(--win); --token: var(--win); }
+        .token-progress { display: flex; gap: 6px; margin-top: 12px; }
+        .token-progress span { flex: 1; height: 6px; border-radius: 4px; background: #ffffff15; }
+        .token-progress .filled { background: var(--token); box-shadow: 0 0 8px #ffffff12; }
+        .round-controls { margin-top: 20px; }
+        .round-controls h3 { font-size: .85rem; font-weight: 500; color: var(--muted); margin: 0 0 10px; }
+        .transmission-choice { display: grid; grid-template-columns: 1fr 1fr; padding: 5px; gap: 5px; background: #0b1411; border: 1px solid var(--line); border-radius: 12px; }
+        .transmission-choice button { background: transparent; border-color: transparent; }
+        .transmission-choice button[aria-pressed="true"] { background: #94d8b325; border-color: var(--win); color: var(--win); }
+        .transmission-choice #failure-button[aria-pressed="true"] { background: #edaba225; border-color: var(--loss); color: var(--loss); }
+        .intercept-control { width: 100%; margin-top: 12px; }
+        .intercept-control[aria-pressed="true"] { background: #e2c68c22; border-color: var(--accent); color: var(--accent); }
+        .session-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .session-actions #next-button { grid-column: 1 / -1; }
         .flow { list-style: none; padding: 0; margin: 0; counter-reset: step; }
         .flow li { position: relative; padding: 0 0 20px 40px; counter-increment: step; font-size: .85rem; line-height: 1.6; }
         .flow li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 26px; height: 26px; line-height: 26px; text-align: center; border: 1px solid #e2c68c40; background: #24372b; color: var(--accent); border-radius: 50%; font-size: .75rem; font-weight: 700; }
@@ -56,7 +72,7 @@
         #outcome { color: var(--accent); font-weight: 650; padding: 12px 14px; border: 1px solid #e2c68c40; background: #e2c68c0a; border-radius: 10px; }
         dialog { width: min(400px, calc(100% - 32px)); padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); color: var(--text); }
         dialog::backdrop { background: rgba(0, 0, 0, .8); }
-        @media (max-width: 380px) { main { padding: 20px 12px 36px; } section { padding: 18px; } .word { padding: 16px; } }
+        @media (max-width: 380px) { main { padding: 20px 12px 36px; } section { padding: 18px; } .word { padding: 16px; } .token-board { gap: 6px; } .token-card { padding: 10px 8px; } .token-card strong { font-size: 1.4rem; } }
         @media (prefers-reduced-motion: reduce) { button { transition: none; } }
         [hidden] { display: none !important; }
     </style>
@@ -94,42 +110,46 @@
         </section>
         <div id="public-controls">
             <section id="scoring">
-                <div class="section-head"><h2>本队记分</h2><span class="muted" style="font-size:.75rem;">累计次数</span></div>
-                <div class="score-row">
-                    <span>传递成功<small>仅作统计</small></span>
-                    <div class="stepper">
-                        <button id="success-minus" aria-label="撤销本轮传递成功" onclick="adjustScore('success', -1)">−</button>
+                <div class="section-head"><h2>本队标记</h2><span class="round-badge">2 枚决定胜负</span></div>
+                <div class="token-board">
+                    <div class="token-card success">
+                        <span>传递成功</span>
                         <strong id="success-count" aria-live="polite">0</strong>
-                        <button id="success-button" aria-label="记录本轮传递成功" onclick="adjustScore('success', 1)">+</button>
+                        <small>累计成就</small>
+                    </div>
+                    <div class="token-card loss">
+                        <span>传递失误</span>
+                        <strong><span id="failure-count" aria-live="polite">0</span> / 2</strong>
+                        <small>2 枚达到失败条件</small>
+                        <div id="failure-progress" class="token-progress" role="img"></div>
+                    </div>
+                    <div class="token-card win">
+                        <span>截获密码</span>
+                        <strong><span id="intercept-count" aria-live="polite">0</span> / 2</strong>
+                        <small>2 枚达到获胜条件</small>
+                        <div id="intercept-progress" class="token-progress" role="img"></div>
                     </div>
                 </div>
-                <div class="score-row">
-                    <span>传递失败<small>2 次达到失败条件</small></span>
-                    <div class="stepper">
-                        <button id="failure-minus" aria-label="撤销本轮传递失败" onclick="adjustScore('failure', -1)">−</button>
-                        <strong id="failure-count" aria-live="polite">0</strong>
-                        <button id="failure-button" aria-label="记录本轮传递失败" onclick="adjustScore('failure', 1)">+</button>
+                <div class="round-controls">
+                    <h3>本轮传递结果</h3>
+                    <div class="transmission-choice" role="group" aria-label="本轮传递结果">
+                        <button id="success-button" aria-pressed="false" onclick="setTransmission('success')">传递成功</button>
+                        <button id="failure-button" aria-pressed="false" onclick="setTransmission('failure')">传递失败</button>
                     </div>
-                </div>
-                <div class="score-row">
-                    <span>破译成功<small>2 次达到获胜条件</small></span>
-                    <div class="stepper">
-                        <button id="intercept-minus" aria-label="撤销本轮破译成功" onclick="adjustScore('intercept', -1)">−</button>
-                        <strong id="intercept-count" aria-live="polite">0</strong>
-                        <button id="intercept-button" aria-label="记录本轮破译成功" aria-describedby="intercept-hint" onclick="adjustScore('intercept', 1)">+</button>
-                    </div>
+                    <button id="intercept-button" class="intercept-control" aria-pressed="false" aria-describedby="intercept-hint" onclick="toggleIntercept()">本轮破译对方成功</button>
                 </div>
                 <p id="intercept-hint" class="muted"></p>
                 <p id="outcome" aria-live="polite"></p>
                 <p id="score-hint" class="muted"></p>
             </section>
-            <div class="actions">
-                <button id="next-button" onclick="nextRound()">下一轮，换加密者</button>
+            <div class="actions session-actions">
+                <button id="next-button" class="primary" onclick="nextRound()">下一轮，换加密者</button>
+                <button id="finish-button" class="secondary" onclick="requestSettlement()">结束本局</button>
                 <button class="secondary" onclick="restartGame()">重开整局</button>
             </div>
-            <button id="finish-button" class="code-recheck" onclick="requestSettlement()">对方已达标？本轮结束后结算</button>
             <section id="settlement" hidden aria-labelledby="settlement-title">
                 <h2 id="settlement-title">本局结算</h2>
+                <p>本队默契战绩：成功传递 <strong id="settlement-success-count">0</strong> 次（仅作成就记录）</p>
                 <p>本队净分：<strong id="net-score"></strong>（截获数 − 失误数）</p>
                 <p>请对照双方记分：2 个截获获胜，2 个失误失败。必须完成两队本轮行动后判断。</p>
                 <p>若同一队同时有 2 个截获和 2 个失误、双方同轮都达到 2 个截获或都达到 2 个失误，或第 8 轮无人达标：比较净分，高者获胜。</p>
@@ -295,22 +315,11 @@
         updateRound(round => { round.intercepted = !round.intercepted; });
     }
 
-    function adjustScore(type, delta) {
-        if (!game || game.ended) return;
-        const round = currentRound();
-        if (type === "intercept") {
-            if (game.rounds.length === 1) return;
-            if ((delta > 0 && !round.intercepted) || (delta < 0 && round.intercepted)) toggleIntercept();
-        } else if (["success", "failure"].includes(type) && round.code) {
-            if ((delta > 0 && round.transmission !== type) || (delta < 0 && round.transmission === type)) setTransmission(type);
-        }
-    }
-
     function nextRound() {
         if (!game || game.ended) return;
         if (mustSettle()) { requestSettlement(); return; }
         if (!currentRound().code || !currentRound().transmission) return;
-        if (!confirm("双方本轮行动、核对与记分都完成了吗？若对方已达标，请取消并点击结算；否则进入下一轮，把手机交给下一位加密者。")) return;
+        if (!confirm("双方本轮行动、核对与记分都完成了吗？若任一队已达标，请取消并点击“结束本局”；否则进入下一轮，把手机交给下一位加密者。")) return;
         const next = JSON.parse(JSON.stringify(game));
         next.rounds.push(emptyRound());
         if (save(next)) { secretVisible = false; render(); }
@@ -349,6 +358,17 @@
     function restartGame() {
         if (!confirm("重开整局？将清空所有记分，并重新随机生成本队的 4 个词。")) return;
         startGame();
+    }
+
+    function renderProgress(id, count, label) {
+        const progress = document.getElementById(id);
+        progress.replaceChildren();
+        progress.setAttribute("aria-label", `${label} ${count} 枚，2 枚达到条件`);
+        for (let index = 0; index < 2; index += 1) {
+            const marker = document.createElement("span");
+            marker.className = index < count ? "filled" : "";
+            progress.append(marker);
+        }
     }
 
     function render() {
@@ -400,24 +420,28 @@
         document.getElementById("success-count").textContent = success;
         document.getElementById("failure-count").textContent = failure;
         document.getElementById("intercept-count").textContent = intercept;
+        document.getElementById("settlement-success-count").textContent = success;
+        renderProgress("failure-progress", failure, "失误");
+        renderProgress("intercept-progress", intercept, "截获");
         const conditions = [];
         if (intercept >= 2) conditions.push("本队已达到获胜条件（2 个截获标记）");
         if (failure >= 2) conditions.push("本队已达到失败条件（2 个失误标记）");
         document.getElementById("outcome").textContent = conditions.length ? conditions.join("；") + "。请完成双方本轮行动，再结算，不再开启下一轮。" : game.rounds.length >= 8 ? "已到第 8 轮，请完成双方行动后结算，不再开启下一轮。" : "";
         ["success", "failure"].forEach(type => {
-            document.getElementById(`${type}-button`).disabled = !!game.ended || !round.code || round.transmission === type;
-            document.getElementById(`${type}-minus`).disabled = !!game.ended || round.transmission !== type;
+            document.getElementById(`${type}-button`).disabled = !!game.ended || !round.code;
+            document.getElementById(`${type}-button`).setAttribute("aria-pressed", String(round.transmission === type));
         });
         document.getElementById("next-button").disabled = !!game.ended || (!mustSettle() && (!round.code || !round.transmission));
         document.getElementById("next-button").textContent = game.ended ? "本局已结束" : mustSettle() ? "本轮结束，查看结算" : "下一轮，换加密者";
-        document.getElementById("intercept-button").disabled = !!game.ended || game.rounds.length === 1 || round.intercepted;
-        document.getElementById("intercept-minus").disabled = !!game.ended || !round.intercepted;
+        document.getElementById("intercept-button").disabled = !!game.ended || game.rounds.length === 1;
+        document.getElementById("intercept-button").setAttribute("aria-pressed", String(round.intercepted));
+        document.getElementById("intercept-button").textContent = round.intercepted ? "已截获本轮密码 · 点击撤销" : "本轮破译对方成功";
         document.getElementById("finish-button").hidden = !!game.ended;
         document.getElementById("settlement").hidden = !game.ended;
         document.getElementById("net-score").textContent = intercept - failure;
         document.getElementById("intercept-hint").textContent = game.rounds.length === 1 ? "第一轮不破译对方，第二轮开放。" : "";
         document.getElementById("intercept-hint").hidden = game.rounds.length !== 1;
-        document.getElementById("score-hint").textContent = game.ended ? "记分已锁定；有误可返回修正。" : "＋记录本轮，−撤销本轮。传递成功与失败二选一。";
+        document.getElementById("score-hint").textContent = game.ended ? "记分已锁定；有误可返回修正。" : "核对后选择结果，再点已选项可撤销。";
     }
 
     document.getElementById("code-confirmation").addEventListener("cancel", cancelCodeView);
