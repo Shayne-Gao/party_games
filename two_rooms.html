@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="referrer" content="no-referrer">
+    <title>两室一弹 · 联机发牌</title>
+    <style>
+        :root { --ink:#17283f; --muted:#677487; --paper:#f3f0e9; --blue:#356cb8; --red:#be5145; --line:#dcdedc; --gold:#e7b870; }
+        * { box-sizing:border-box; }
+        body { margin:0; background:var(--paper); color:var(--ink); font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.6; }
+        button,input,select { font:inherit; }
+        button { cursor:pointer; touch-action:manipulation; }
+        button:disabled { cursor:not-allowed; opacity:.5; }
+        button:focus-visible,a:focus-visible,input:focus-visible { outline:3px solid var(--gold); outline-offset:3px; }
+        [hidden] { display:none !important; }
+        .app { max-width:580px; margin:auto; padding:26px 20px 50px; }
+        header { display:flex; align-items:center; gap:14px; margin-bottom:24px; }
+        .mark { width:48px; height:48px; position:relative; flex-shrink:0; }
+        .mark::before,.mark::after { content:""; position:absolute; width:30px; height:38px; border-radius:7px; border:2px solid var(--paper); }
+        .mark::before { background:var(--blue); top:0; left:0; transform:rotate(-12deg); }
+        .mark::after { background:var(--red); bottom:0; right:0; transform:rotate(12deg); }
+        h1 { font-size:1.55rem; margin:0; letter-spacing:.08em; }
+        .eyebrow { font-size:.7rem; letter-spacing:.16em; color:var(--muted); }
+        h2 { font-size:1.13rem; margin:0 0 10px; }
+        h3 { font-size:1rem; margin:14px 0 6px; }
+        p { margin:8px 0; }
+        .muted { color:var(--muted); font-size:.88rem; }
+        .panel { padding:21px; background:#fffdf9; border:1px solid var(--line); border-radius:17px; margin-bottom:16px; box-shadow:0 5px 16px #17283f04; }
+        .intro { font-size:1.2rem; line-height:1.55; font-weight:650; margin:0 0 16px; }
+        .two-areas { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:18px 0; }
+        .area { border:1px dashed #b8c0c8; padding:12px; border-radius:10px; font-size:.85rem; text-align:center; background:#f6f5f1; }
+        .dots { display:flex; justify-content:center; gap:6px; margin-top:8px; }
+        .dots i { width:10px; height:10px; border-radius:50%; background:var(--blue); }
+        .dots i:nth-child(even) { background:var(--red); }
+        label { display:block; font-size:.88rem; margin:14px 0 5px; font-weight:600; }
+        input,select { width:100%; min-width:0; border:1px solid #cbd0d4; border-radius:9px; background:white; padding:11px 12px; color:var(--ink); }
+        #room-input { text-transform:uppercase; letter-spacing:.12em; }
+        .button { border:1px solid transparent; border-radius:10px; padding:12px 16px; background:var(--ink); color:white; font-weight:600; width:100%; margin-top:12px; min-height:46px; }
+        .secondary { background:transparent; color:var(--ink); border-color:#cbd0d4; }
+        .quiet { border:0; background:transparent; color:var(--muted); padding:10px 8px; font-size:.82rem; text-decoration:underline; text-underline-offset:3px; }
+        .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+        .badge { border:1px solid var(--line); background:#f3f3ee; border-radius:20px; padding:3px 10px; font-size:.76rem; white-space:nowrap; }
+        .code { font-size:1.65rem; font-weight:750; letter-spacing:.16em; font-variant-numeric:tabular-nums; }
+        .share { font-size:.77rem; margin-top:10px; }
+        #notice { border-radius:10px; padding:11px 14px; margin-bottom:16px; background:#fff4d7; color:#76561e; font-size:.86rem; overflow-wrap:anywhere; }
+        #notice.error { background:#f9e6e1; color:#8b3025; }
+        #connection { font-size:.76rem; color:var(--muted); }
+        #connection.online { color:#357650; }
+        .players { list-style:none; padding:0; margin:12px 0 0; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .player { border:1px solid #e5e5de; border-radius:9px; padding:10px; font-size:.88rem; overflow-wrap:anywhere; }
+        .player small { display:block; color:var(--muted); font-size:.73rem; }
+        .player.self { border-color:#9baac1; background:#f0f4f8; }
+        details summary { cursor:pointer; font-weight:600; }
+        details p { font-size:.85rem; color:var(--muted); }
+        dialog { width:calc(100% - 32px); max-width:470px; padding:24px; border:1px solid var(--line); border-radius:17px; color:var(--ink); background:#fffdf9; max-height:85vh; overflow:auto; }
+        dialog::backdrop { background:#17283f99; }
+        .dialog-actions { display:flex; gap:8px; margin-top:14px; }
+        .dialog-actions .button { margin:0; }
+        #identity-dialog { inset:0; margin:0; padding:0; width:100vw; max-width:none; height:100vh; height:100dvh; max-height:none; border:0; border-radius:0; background:var(--paper); overflow:hidden; }
+        .identity-screen { display:flex; flex-direction:column; height:100%; }
+        #identity-color { flex:0 0 50%; }
+        .identity-bottom { flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:22px max(22px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left)); text-align:center; }
+        #identity-details { width:100%; max-width:440px; margin:auto 0; }
+        #identity-details h2 { font-size:clamp(1.8rem,6vw,2.8rem); margin:0 0 12px; }
+        #identity-details p { font-size:1rem; margin:0; line-height:1.75; }
+        .identity-controls { width:100%; max-width:440px; display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px; }
+        .identity-controls .button { margin:0; font-size:.85rem; padding:11px 8px; }
+        .winner { font-size:1.7rem; font-weight:750; }
+        footer { color:var(--muted); font-size:.73rem; text-align:center; margin-top:22px; }
+        @media(max-width:360px) { .app { padding:20px 12px; } .panel { padding:16px; } .code { font-size:1.3rem; } }
+        @media(prefers-reduced-motion:no-preference) { .button { transition:background .15s; } }
+    </style>
+</head>
+<body>
+<main class="app">
+    <header><div class="mark" aria-hidden="true"></div><div><div class="eyebrow">TWO ROOMS &amp; A BOOM</div><h1>两室一弹</h1></div></header>
+    <div id="notice" role="status" hidden></div>
+    <section id="entry">
+        <div class="panel">
+            <p class="intro">两间房，一张秘密身份。<br>手机发牌，面对面博弈。</p>
+            <div class="two-areas" aria-label="两个房间均混有红蓝阵营">
+                <div class="area">A 房间<div class="dots"><i></i><i></i><i></i><i></i></div></div>
+                <div class="area">B 房间<div class="dots"><i></i><i></i><i></i><i></i></div></div>
+            </div>
+            <p class="muted">每人一部手机，正式游玩建议 6–30 人。测试时一个人也能开始。建房的人也参与游戏，不会在管理界面看到其他人的身份。</p>
+            <label for="nickname">你的昵称</label><input id="nickname" maxlength="20" autocomplete="nickname" placeholder="大家怎么称呼你">
+            <button id="create-button" class="button" type="button">创建房间 · 我也参赛</button>
+            <label for="room-input">已有房间码</label><input id="room-input" maxlength="6" autocomplete="off" placeholder="输入 6 位房间码">
+            <button id="join-button" class="button secondary" type="button">加入房间</button>
+            <button id="resume-button" class="button secondary" type="button" hidden>回到上次的房间</button>
+        </div>
+        <p class="muted">联机试玩版：需要联网。请保持房主页面在线；刷新不重新抽牌，房主回来后能恢复整个房间。不同手机不要共用浏览器存档。</p>
+    </section>
+    <section id="room" hidden>
+        <div class="panel">
+            <div class="row"><span class="badge" id="phase-badge">等待开局</span><span id="connection" role="status">正在连接</span></div>
+            <div class="row" style="margin-top:12px"><div><div class="muted">房间码</div><div id="room-code" class="code"></div></div><button id="copy-button" type="button" class="quiet">复制邀请链接</button></div>
+            <input id="share-link" class="share" readonly aria-label="邀请链接，复制发给朋友">
+            <p id="room-summary" class="muted"></p>
+        </div>
+        <section id="lobby" class="panel">
+            <div class="row"><h2>大家到齐，就发牌</h2><span class="badge" id="player-count"></span></div>
+            <p class="muted">每人独立随机身份。房间 A/B 只是位置，不是红蓝阵营。</p>
+            <ul id="lobby-players" class="players"></ul>
+            <button id="start-button" class="button" type="button" hidden>所有人到齐 · 开始发牌</button>
+            <p id="waiting-owner" class="muted">等待房主开始。暂时掉线不会从名单中移除。</p>
+        </section>
+        <section id="card-panel" class="panel" hidden>
+            <div class="row"><h2>你的身份卡</h2><span id="my-area" class="badge"></span></div>
+            <p class="muted">全屏卡片上半屏是纯阵营颜色，下半屏是角色名和介绍。可以遮住或隐藏下半部分，只给别人看颜色。</p>
+            <button id="reveal-button" class="button" type="button">全屏查看我的身份</button>
+            <p id="color-hint" class="muted"></p>
+        </section>
+        <section id="game-controls" class="panel" hidden>
+            <h2>手机只负责发牌</h2>
+            <p class="muted">讨论、计时、轮次和人质交换都在线下进行。身份整局不变，最后一次交换后再揭晓。</p>
+            <button id="finish-button" class="button secondary" type="button" hidden>结束本局 · 揭晓身份</button>
+        </section>
+        <section id="result-panel" class="panel" hidden>
+            <div class="eyebrow">本局揭晓</div><div id="winner" class="winner"></div><p id="result-detail" class="muted"></p>
+            <ul id="result-players" class="players"></ul>
+            <button id="reset-button" class="button" type="button" hidden>保留名单 · 准备下一局</button>
+        </section>
+        <details class="panel">
+            <summary>玩法与联机说明</summary>
+            <p>红队希望总统与炸弹客最后同室；蓝队希望两人分开。每个房间都混有双方，整局身份不变，人质交换不是淘汰。</p>
+            <p>每轮在本房间自由讨论、私下展示身份、选领袖。首次由其他人提名领袖；超过半数支持可以换领袖。领袖不能把自己选作人质，这些规则在线下执行。</p>
+            <p>6–10 人每轮每房交换 1 人；11–21 人依次 2、1、1 人；22–30 人依次 3、2、1 人。计时、轮次和交换名单不在网页记录。最后一轮也要交换，之后才揭晓。页面只标注开局位置，不代表最终所在房间。</p>
+            <p>10 人及以下只能展示完整身份，11 人起可只展示颜色。奇数人数加入赌徒，在其他人亮牌前预测获胜方。</p>
+            <p>禁止跨房间交流、随意串房或交换身份卡。房主需要保持页面在线。切后台可能让手机暂停连接；其他人不会丢牌，但要等房主回到前台后同步。</p>
+            <p>玩家凭证保存在当前浏览器，不能仅靠昵称找回。换手机、清空数据或无痕模式无法恢复。试玩不提供个人恢复码。正常网络同步不会发送别人的未公开身份；本版是朋友间的诚信辅助工具，不防房主使用开发者工具查看本机存档。</p>
+        </details>
+        <div class="row"><button id="reconnect-button" class="quiet" type="button">重新连接</button><button id="leave-button" class="quiet" type="button">暂时回到大厅</button></div>
+    </section>
+    <footer>联机发牌预览 · 讨论、领袖选举在线下进行</footer>
+</main>
+<dialog id="confirm-dialog" aria-labelledby="confirm-title">
+    <h2 id="confirm-title"></h2><p id="confirm-text" class="muted"></p>
+    <div class="dialog-actions"><button id="confirm-cancel" class="button secondary" type="button">取消</button><button id="confirm-ok" class="button" type="button">确认</button></div>
+</dialog>
+<dialog id="identity-dialog" aria-label="全屏身份卡，上半屏为阵营颜色，下半屏为角色信息">
+    <div class="identity-screen">
+        <div id="identity-color" role="img" aria-label="阵营颜色"></div>
+        <div class="identity-bottom">
+            <div id="identity-details" aria-live="polite"></div>
+            <div class="identity-controls">
+                <button id="color-button" class="button secondary" type="button">隐藏下半部分</button>
+                <button id="hide-button" class="button" type="button">收起身份卡</button>
+            </div>
+        </div>
+    </div>
+</dialog>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script id="room-core">
+"use strict";
+const ROLES = {
+    president:{team:"blue",name:"总统",goal:"最后一次交换后，不要与炸弹客在同一房间。"},
+    blue:{team:"blue",name:"蓝队成员",goal:"找到队友，让总统与炸弹客最后分开。"},
+    bomber:{team:"red",name:"炸弹客",goal:"最后一次交换后，与总统进入同一房间。"},
+    red:{team:"red",name:"红队成员",goal:"找到炸弹客和总统，帮助他们最后同室。"},
+    gambler:{team:"grey",name:"赌徒",goal:"最后交换后、大家亮牌前，预测获胜阵营。猜对就独立获胜。"}
+};
+function randomBelow(limit) {
+    const buffer = new Uint32Array(1), ceiling = Math.floor(0x100000000 / limit) * limit;
+    do { crypto.getRandomValues(buffer); } while(buffer[0] >= ceiling);
+    return buffer[0] % limit;
+}
+function secretId() {
+    return Array.from(crypto.getRandomValues(new Uint8Array(24)), n => n.toString(16).padStart(2,"0")).join("");
+}
+function shuffle(items) {
+    const result = [...items];
+    for(let i=result.length-1;i>0;i--) { const j=randomBelow(i+1); [result[i],result[j]]=[result[j],result[i]]; }
+    return result;
+}
+function check(condition,message) { if(!condition) throw new Error(message); }
+function validToken(token) { return typeof token === "string" && /^[a-f0-9]{48}$/.test(token); }
+function cleanName(name) { check(typeof name==="string" && name.trim().length>0 && name.trim().length<=20,"昵称请填写 1–20 个字符"); return name.trim(); }
+function makeRoom(code,token,name) {
+    check(validToken(token),"玩家凭证无效");
+    const owner = {id:secretId(),token,name:cleanName(name),area:null,role:null};
+    return {version:1,code,ownerId:owner.id,players:[owner],phase:"lobby",gameId:null,revision:0};
+}
+function mutateRoom(room,token,action) {
+    const next = JSON.parse(JSON.stringify(room));
+    // Keep existing identities when restoring a preview made before timing moved offline.
+    delete next.round; delete next.deadline; delete next.prediction;
+    if(next.phase==="predicting") next.phase="playing";
+    let actor = next.players.find(p=>p.token===token);
+    if(action.type==="join") {
+        check(validToken(token),"玩家凭证无效");
+        if(actor) return next;
+        check(next.phase==="lobby","本局已经发牌，不能新增玩家；原玩家请使用原浏览器恢复");
+        check(next.players.length<30,"房间已满，最多 30 人");
+        const name = cleanName(action.name);
+        check(!next.players.some(p=>p.name===name),"昵称已使用，请换一个；恢复身份不能只靠昵称");
+        next.players.push({id:secretId(),token,name,area:null,role:null});
+    } else {
+        check(actor,"无法验证玩家，请用原浏览器恢复");
+        const owner = actor.id===next.ownerId;
+        if(action.type==="start") {
+            check(owner && next.phase==="lobby","只有房主能在大厅开始");
+            const total=next.players.length,half=Math.floor(total/2);
+            check(total>=1 && total<=30,"最多支持 30 位玩家");
+            // A solo preview uses one real card without inventing a second player.
+            const roles=total===1 ? shuffle(["president","bomber"]).slice(0,1) : shuffle(["president","bomber",...Array(half-1).fill("blue"),...Array(half-1).fill("red"),...(total%2?["gambler"]:[])]);
+            const areas=total===1 ? ["A"] : shuffle([...Array(half).fill("A"),...Array(total-half).fill("B")]);
+            next.players.forEach((p,i)=>{ p.role=roles[i]; p.area=areas[i]; });
+            next.phase="playing"; next.gameId=secretId();
+        } else if(action.type==="finish") {
+            check(owner && next.phase==="playing","只有房主能结束进行中的对局");
+            check(action.gameId===next.gameId,"本局已改变，请重新确认");
+            next.phase="ended";
+        } else if(action.type==="reset") {
+            check(owner && next.phase==="ended","只有房主能在本局结束后重开");
+            next.players.forEach(p=>{ p.role=null; p.area=null; });
+            next.phase="lobby"; next.gameId=null;
+        } else throw new Error("不支持此操作");
+    }
+    next.revision++;
+    return next;
+}
+function viewFor(room,token,onlineIds=[]) {
+    const self=room.players.find(p=>p.token===token);
+    check(self,"玩家凭证不属于这个房间");
+    return {
+        code:room.code,phase:room.phase==="predicting"?"playing":room.phase,gameId:room.gameId,revision:room.revision,
+        selfId:self.id,ownerId:room.ownerId,myRole:self.role,myArea:self.area,total:room.players.length,
+        players:room.players.map(p=>({id:p.id,name:p.name,area:p.area,online:onlineIds.includes(p.id),...(room.phase==="ended"?{role:p.role}:{})}))
+    };
+}
+</script>
+<script id="room-app">
+"use strict";
+const $ = id => document.getElementById(id);
+const PREFIX="party-two-rooms:v1:";
+let profile=null,authority=null,view=null,peer=null,link=null,online=false,busy=false,mode="hidden",generation=0,retryTimer=null,connectTimer=null,lastReply=0,sentPing=0,awaitingAck=false,autoRetry=true;
+const connections=new Map();
+let confirmAction=null;
+function notice(message,error=false) { $("notice").textContent=message; $("notice").classList.toggle("error",error); $("notice").hidden=!message; }
+function read(key) { try { return JSON.parse(localStorage.getItem(PREFIX+key)); } catch { return null; } }
+function store(key,value) { localStorage.setItem(PREFIX+key,JSON.stringify(value)); }
+function saveProfile() { store("profile:"+profile.code,profile); store("last",profile.code); }
+function cachedView() {
+    const cached=read("view:"+profile.code);
+    if(!cached || cached.token!==profile.token) return null;
+    if(cached.view.phase==="predicting") cached.view.phase="playing";
+    return cached.view;
+}
+function persist(next) { store("host:"+profile.code,next); authority=next; }
+function hostId(code) { return "party-two-rooms-v1-"+code.toLowerCase(); }
+function currentOnlineIds() { return [authority.ownerId,...Array.from(connections.keys())]; }
+function updateView(next) {
+    if(!view || view.gameId!==next.gameId || view.phase!==next.phase || view.myArea!==next.myArea) { mode="hidden"; closeDialogs(); }
+    view=next;
+    try { store("view:"+profile.code,{token:profile.token,view:next}); } catch { notice("身份缓存保存失败，请不要关闭页面。",true); }
+    render();
+}
+function pushViews() {
+    const ids=currentOnlineIds();
+    updateView(viewFor(authority,profile.token,ids));
+    for(const [id,conn] of connections) if(conn.open) {
+        const player=authority.players.find(p=>p.id===id);
+        conn.send({type:"state",view:viewFor(authority,player.token,ids),serverTime:Date.now()});
+    }
+}
+function hostCommand(token,action) {
+    const next=mutateRoom(authority,token,action);
+    persist(next);
+    pushViews();
+}
+function applyAction(action) {
+    if(!online || awaitingAck) { notice("请等待房间重新连接。",true); return; }
+    try {
+        if(profile.owner) hostCommand(profile.token,action);
+        else {
+            check(link && link.open,"连接中断，请重新连接");
+            awaitingAck=true; render();
+            link.send({type:"action",action});
+        }
+    } catch(error) { notice(error.message,true); }
+}
+function stopNetwork() {
+    generation++; clearTimeout(retryTimer); clearTimeout(connectTimer); retryTimer=null;
+    online=false; awaitingAck=false;
+    if(peer) { peer.destroy(); peer=null; }
+    link=null; connections.clear();
+}
+function scheduleRetry() {
+    if(!profile || !autoRetry || retryTimer) return;
+    retryTimer=setTimeout(()=>{ retryTimer=null; if(profile) connectRoom(); },5000);
+}
+function networkDown(message) { online=false; awaitingAck=false; mode="hidden"; closeDialogs(); notice(message,true); render(); scheduleRetry(); }
+function connectRoom() {
+    stopNetwork();
+    const attempt=generation;
+    busy=true; render();
+    if(!window.Peer) { busy=false; notice("联机组件未加载，请检查网络后刷新。",true); render(); return; }
+    if(profile.owner) {
+        const saved=read("host:"+profile.code);
+        if(!saved || saved.version!==1 || !saved.players.some(p=>p.token===profile.token && p.id===saved.ownerId)) {
+            busy=false; notice("房主存档不存在，不能恢复旧房间。请新建房间。",true); render(); return;
+        }
+        authority=saved;
+    }
+    try { peer=new Peer(profile.owner?hostId(profile.code):undefined); }
+    catch(error) { busy=false; notice("创建连接失败："+error.message,true); render(); return; }
+    connectTimer=setTimeout(()=>{ if(attempt===generation && !online) { busy=false; networkDown("暂时未连接到房主，正在重试。缓存身份仍可查看。"); } },18000);
+    peer.on("open",()=>{
+        if(attempt!==generation) return;
+        if(profile.owner) {
+            online=true; busy=false; clearTimeout(connectTimer); notice(""); pushViews();
+        } else {
+            link=peer.connect(hostId(profile.code),{reliable:true});
+            link.on("open",()=>{ if(attempt===generation) link.send({type:"hello",token:profile.token,name:profile.name}); });
+            link.on("data",data=>{
+                if(attempt!==generation || !data || typeof data!=="object") return;
+                if(data.type==="state") {
+                    clearTimeout(connectTimer); lastReply=Date.now();
+                    online=true; busy=false; awaitingAck=false; notice(""); updateView(data.view);
+                } else if(data.type==="error") {
+                    busy=false; awaitingAck=false; notice(data.message || "操作未完成",true); render();
+                    if(!online) { autoRetry=false; clearTimeout(connectTimer); link.close(); }
+                } else if(data.type==="replaced") {
+                    autoRetry=false; clearTimeout(retryTimer); retryTimer=null;
+                    online=false; busy=false; awaitingAck=false; mode="hidden"; closeDialogs();
+                    notice("身份已在另一个页面恢复，请使用新页面。此页保留缓存，但不会自动抢回连接。");
+                    render(); link.close();
+                }
+            });
+            link.on("close",()=>{ if(attempt===generation && autoRetry) { busy=false; networkDown("房主暂时离线。身份不会重抽，正在尝试恢复连接。"); } });
+            link.on("error",()=>{ if(attempt===generation) { busy=false; networkDown("连接中断，正在重试。"); } });
+        }
+    });
+    peer.on("connection",conn=>{
+        if(!profile.owner || attempt!==generation) { conn.close(); return; }
+        let actorToken=null,actorId=null;
+        conn.on("data",data=>{
+            if(attempt!==generation) return;
+            try {
+                check(data && typeof data==="object" && JSON.stringify(data).length<12000,"请求无效");
+                if(data.type==="hello") {
+                    check(!actorToken,"连接已认证");
+                    const next=mutateRoom(authority,data.token,{type:"join",name:data.name});
+                    persist(next);
+                    actorToken=data.token; actorId=authority.players.find(p=>p.token===actorToken).id;
+                    const old=connections.get(actorId);
+                    connections.set(actorId,conn);
+                    if(old && old!==conn) {
+                        if(old.open) old.send({type:"replaced"});
+                        setTimeout(()=>old.close(),250);
+                    }
+                    pushViews();
+                } else {
+                    check(actorToken && connections.get(actorId)===conn,"请先验证玩家身份");
+                    if(data.type==="ping") conn.send({type:"state",view:viewFor(authority,actorToken,currentOnlineIds()),serverTime:Date.now()});
+                    else if(data.type==="action") hostCommand(actorToken,data.action);
+                    else throw new Error("请求无效");
+                }
+            } catch(error) { if(conn.open) conn.send({type:"error",message:error.message}); }
+        });
+        const drop=()=>{ if(attempt===generation && connections.get(actorId)===conn) { connections.delete(actorId); pushViews(); } };
+        conn.on("close",drop); conn.on("error",drop);
+    });
+    peer.on("error",error=>{
+        if(attempt!==generation) return;
+        busy=false;
+        if(error.type==="unavailable-id") {
+            autoRetry=false;
+            online=false; clearTimeout(connectTimer); notice("房间已在另一个房主标签页打开。请回到原标签页，或关闭它后再重连。",true); render();
+        } else if(error.type==="peer-unavailable") {
+            clearTimeout(connectTimer); networkDown("房主尚未在线或房间码不正确。正在重试；可回大厅检查房间码。");
+        } else networkDown("网络连接失败，正在重试。请检查是否能访问 PeerJS 联机服务。");
+    });
+    peer.on("disconnected",()=>{
+        if(attempt!==generation || !peer || peer.destroyed) return;
+        notice("信令连接中断，正在重连；已连上的玩家可继续。");
+        try { peer.reconnect(); } catch { networkDown("联机服务暂时不可用，正在重试。"); }
+    });
+}
+function beginProfile(next) {
+    profile=next; autoRetry=true; saveProfile();
+    const url=new URL(location.href); url.searchParams.set("room",profile.code); history.replaceState(null,"",url);
+    view=cachedView(); mode="hidden"; busy=true; notice("正在连接房间…"); render(); connectRoom();
+}
+function createRoom() {
+    if(busy) return;
+    try {
+        const name=cleanName($("nickname").value),alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const code=Array.from({length:6},()=>alphabet[randomBelow(alphabet.length)]).join("");
+        const token=secretId(),next={code,token,name,owner:true};
+        store("host:"+code,makeRoom(code,token,name));
+        beginProfile(next);
+    } catch(error) { busy=false; notice("无法建房："+error.message+"。需要允许浏览器保存本机数据。",true); render(); }
+}
+function joinRoom() {
+    if(busy) return;
+    try {
+        const code=$("room-input").value.trim().toUpperCase();
+        check(/^[A-Z2-9]{6}$/.test(code),"请输入正确的 6 位房间码");
+        const existing=read("profile:"+code);
+        if(existing && validToken(existing.token)) {
+            if(!existing.owner && !read("view:"+code)) existing.name=cleanName($("nickname").value || existing.name);
+            beginProfile(existing);
+        }
+        else beginProfile({code,token:secretId(),name:cleanName($("nickname").value),owner:false});
+    } catch(error) { busy=false; notice(error.message,true); render(); }
+}
+function resumeRoom() {
+    const code=read("last"),saved=code && read("profile:"+code);
+    try { check(saved && validToken(saved.token),"未找到本机玩家凭证"); beginProfile(saved); }
+    catch(error) { busy=false; notice(error.message,true); render(); }
+}
+function closeDialogs() {
+    for(const id of ["confirm-dialog","identity-dialog"]) if($(id).open) $(id).close();
+    $("identity-details").replaceChildren(); $("identity-color").style.backgroundColor="";
+    $("identity-color").setAttribute("aria-label","阵营颜色"); confirmAction=null;
+}
+function ask(title,text,action) {
+    $("confirm-title").textContent=title; $("confirm-text").textContent=text; confirmAction=action; $("confirm-dialog").showModal();
+}
+function playerList(id,players,ended=false) {
+    const list=$(id); list.replaceChildren();
+    for(const p of players) {
+        const li=document.createElement("li"); li.className="player"+(p.id===view.selfId?" self":"");
+        const name=document.createElement("span"); name.textContent=p.name+(p.id===view.selfId?"（你）":"");
+        const meta=document.createElement("small");
+        meta.textContent=ended ? "开局 "+p.area+" 房间 · "+ROLES[p.role].name : (p.id===view.ownerId?"房主 · ":"")+(p.online?"已连接":"暂时离线，名额保留");
+        li.append(name,meta); list.append(li);
+    }
+}
+function renderCard() {
+    const dialog=$("identity-dialog"),details=$("identity-details");
+    details.replaceChildren();
+    $("color-hint").textContent=view.total<=10?"正式规则：10 人及以下只展示整张卡；试玩不限制颜色展示。":"只展示颜色时，可以隐藏下半部分，再把上半屏给别人看。";
+    if(mode==="hidden" || !view.myRole) {
+        if(dialog.open) dialog.close();
+        $("identity-color").style.backgroundColor="";
+        $("identity-color").setAttribute("aria-label","阵营颜色");
+        return;
+    }
+    const role=ROLES[view.myRole];
+    $("identity-color").style.backgroundColor=({blue:"#356cb8",red:"#be5145",grey:"#8b8e93"})[role.team];
+    $("identity-color").setAttribute("aria-label",({blue:"蓝色阵营",red:"红色阵营",grey:"灰色阵营"})[role.team]);
+    const title=document.createElement("h2");
+    title.textContent=mode==="color"?"角色信息已隐藏":role.name;
+    const description=document.createElement("p");
+    description.textContent=mode==="color"?"上半屏只有阵营颜色，不包含角色名或介绍。":role.goal;
+    details.append(title,description);
+    $("color-button").textContent=mode==="color"?"显示角色介绍":"隐藏下半部分";
+    if(!dialog.open) dialog.showModal();
+}
+function render() {
+    $("entry").hidden=!!profile; $("room").hidden=!profile;
+    $("create-button").disabled=busy; $("join-button").disabled=busy;
+    const previous=read("last"); $("resume-button").hidden=!previous;
+    if(previous) $("resume-button").textContent="恢复房间 "+previous+" · 使用原身份";
+    if(!profile) return;
+    $("room-code").textContent=profile.code;
+    const invite=new URL(location.href); invite.search=""; invite.searchParams.set("room",profile.code); $("share-link").value=invite.toString();
+    $("connection").textContent=online?"已连接":busy?"连接中…":"离线 · 等待恢复";
+    $("connection").classList.toggle("online",online);
+    for(const id of ["lobby","card-panel","game-controls","result-panel"]) $(id).hidden=true;
+    $("room-summary").textContent=view?(profile.name+" · "+view.total+" 位玩家"+(!online?" · 当前是本机缓存，对局状态可能已变化":"")):"正在验证玩家凭证，请等待房主在线。";
+    $("phase-badge").textContent=!view?"正在加入":({lobby:"等待发牌",playing:"本局进行中",ended:"本局已结束"})[view.phase];
+    if(!view) return;
+    if(view.total<6) $("phase-badge").textContent+=" · 测试局";
+    const isOwner=view.selfId===view.ownerId;
+    if(view.phase==="lobby") {
+        if($("identity-dialog").open) $("identity-dialog").close();
+        $("identity-details").replaceChildren(); $("identity-color").style.backgroundColor="";
+        $("lobby").hidden=false; $("player-count").textContent=view.total+" / 30";
+        playerList("lobby-players",view.players);
+        $("start-button").hidden=!isOwner; $("start-button").disabled=!online || awaitingAck;
+        $("waiting-owner").textContent=isOwner?(view.total<6?"现在即可开始测试；正式游玩建议至少 6 人。":"暂时离线的人也会获得身份，请先确认大家已到齐。"):"等待房主开始。暂时掉线不会从名单中移除。";
+    } else {
+        $("card-panel").hidden=false; $("my-area").textContent="开局 · "+view.myArea+" 房间";
+        renderCard();
+        if(view.phase==="playing") {
+            $("game-controls").hidden=false;
+            $("finish-button").hidden=!isOwner; $("finish-button").disabled=!online || awaitingAck;
+        } else if(view.phase==="ended") {
+            $("result-panel").hidden=false;
+            $("winner").textContent=view.total===1?"测试结束":"本局身份已揭晓";
+            $("result-detail").textContent=view.total===1?"单人测试不判断胜负，可以保留名单重新发牌。":"请根据线下最终位置判断：总统与炸弹客同室，红队胜；分开，蓝队胜。下方标注的是开局位置，不是最终位置。";
+            playerList("result-players",view.players,true);
+            $("reset-button").hidden=!isOwner; $("reset-button").disabled=!online || awaitingAck;
+        }
+    }
+}
+$("create-button").onclick=createRoom; $("join-button").onclick=joinRoom; $("resume-button").onclick=resumeRoom;
+$("reconnect-button").onclick=()=>{ autoRetry=true; if(profile) connectRoom(); };
+$("start-button").onclick=()=>ask("开始本局？","将随机发身份并分配 A/B 房间，你也会获得自己的卡。请确认名单上的玩家都准备好了。",()=>applyAction({type:"start"}));
+$("finish-button").onclick=()=>{
+    const gameId=view.gameId;
+    ask("结束本局并揭晓身份？","请确认双方最后一轮交换已在线下完成；如果有赌徒，先让其预测获胜方。确认后所有身份公开，不能撤销。",()=>applyAction({type:"finish",gameId}));
+};
+$("reset-button").onclick=()=>ask("准备下一局？","保留玩家名单，清除本局身份。大家到齐后再次发牌，重新随机身份与房间。",()=>applyAction({type:"reset"}));
+$("leave-button").onclick=()=>ask("暂时回到大厅？",profile && profile.owner?"你是房主，离开后其他人暂时不能操作房间，但不会丢失身份。重新打开原房间即可恢复。":"你的名额和身份会保留。同一浏览器重新加入即可恢复。",()=>{
+    stopNetwork(); profile=null; authority=null; view=null; mode="hidden"; busy=false;
+    const url=new URL(location.href); url.searchParams.delete("room"); history.replaceState(null,"",url); notice(""); render();
+});
+$("confirm-cancel").onclick=()=>{ confirmAction=null; $("confirm-dialog").close(); };
+$("confirm-dialog").addEventListener("cancel",()=>{ confirmAction=null; });
+$("confirm-ok").onclick=()=>{ const action=confirmAction; confirmAction=null; $("confirm-dialog").close(); if(action) action(); };
+$("reveal-button").onclick=()=>{ mode="full"; renderCard(); };
+$("color-button").onclick=()=>{ mode=mode==="color"?"full":"color"; renderCard(); };
+$("hide-button").onclick=hideIdentity;
+$("identity-dialog").addEventListener("cancel",event=>{ event.preventDefault(); hideIdentity(); });
+$("copy-button").onclick=async()=>{
+    const input=$("share-link");
+    try { if(navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(input.value); else { input.focus(); input.select(); check(document.execCommand("copy"),"请长按链接复制"); } notice("邀请链接已复制，发给朋友即可加入。"); }
+    catch { input.focus(); input.select(); notice("请长按上方邀请链接复制。"); }
+};
+function hideIdentity() { mode="hidden"; closeDialogs(); if(view && view.myRole) renderCard(); }
+document.addEventListener("visibilitychange",()=>{
+    if(document.hidden) hideIdentity();
+    else if(profile && !online && autoRetry) connectRoom();
+});
+window.addEventListener("pagehide",hideIdentity);
+window.addEventListener("pageshow",event=>{ if(event.persisted) { hideIdentity(); if(profile && autoRetry) connectRoom(); } });
+setInterval(()=>{
+    if(profile && !profile.owner && online && link && link.open) {
+        if(Date.now()-lastReply>22000) { networkDown("房主暂时未响应。保留原身份，正在恢复连接。"); return; }
+        if(Date.now()-sentPing>5000) { sentPing=Date.now(); link.send({type:"ping"}); }
+    }
+},1000);
+try {
+    store("storage-check",true); localStorage.removeItem(PREFIX+"storage-check");
+    const code=new URL(location.href).searchParams.get("room");
+    if(code) {
+        $("room-input").value=code.toUpperCase();
+        const saved=read("profile:"+code.toUpperCase());
+        if(saved && validToken(saved.token)) beginProfile(saved);
+        else render();
+    } else render();
+} catch { notice("浏览器无法保存玩家凭证，请关闭无痕模式并允许本机存储后再试。",true); $("create-button").disabled=true; $("join-button").disabled=true; }
+</script>
+</body>
+</html>
